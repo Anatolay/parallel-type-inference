@@ -1,0 +1,52 @@
+name:                parallel-type-inference
+version:             0.1.0.0
+github:              "Anatolay/parallel-type-inference"
+license:             BSD3
+author:              "Anatoliy Baskakov"
+maintainer:          "nihonvasserman228@gmail.com"
+copyright:           "2022 Innopolis University"
+
+extra-source-files:
+- README.md
+
+description:         Please see the README on GitHub at <https://github.com/Anatolay/parallel-type-inference#readme>
+
+
+dependencies:
+- base >= 4.7 && < 5
+- accelerate
+- accelerate-llvm
+- accelerate-llvm-native
+
+
+library:
+  source-dirs: src
+  dependencies:
+  - array
+  - containers
+
+
+executables:
+  compiler:
+    main:                Compiler.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - parallel-type-inference
+
+
+tests:
+  test:
+    main:                Spec.hs
+    source-dirs:         test
+    # other-modules:       TConversion
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - parallel-type-inference
+    - HUnit

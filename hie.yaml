@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "parallel-type-inference:lib"
+
+    - path: "./app/Compiler.hs"
+      component: "parallel-type-inference:exe:compiler"
+
+    - path: "./app/Paths_parallel-type-inference.hs"
+      component: "parallel-type-inference:exe:compiler"
+
+    - path: "./test"
+      component: "parallel-type-inference:test:test"

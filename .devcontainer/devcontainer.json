@@ -1,0 +1,13 @@
+{
+  "name": "Dev Container",
+  "image": "nihon/compiler-dev",
+  "settings": {
+    "haskell.manageHLS": "PATH",
+    "haskell.ghcupExecutablePath": "/home/vscode/.ghcup/bin/ghcup",
+    "haskell.serverExecutablePath": "haskell-language-server-8.10.7"
+  },
+  "extensions": [
+    "haskell.haskell"
+  ],
+  "remoteUser": "vscode"
+}
