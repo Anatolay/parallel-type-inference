@@ -3,16 +3,28 @@ Basis for a parallel by construction type inference
 
 
 ## Build
-Unfortunately, stack's docker build does not work at the moment
 ```
 stack build --docker
+```
+Unfortunately, it does not work at the moment
+
+At the moment, the only way is to connect to a [devcontainer](#dev-container) and build from there:
+```sh
+docker ps # find container's ID
+docker exec -ti [ID] /bin/bash
+$ cd /workspaces/[workspace name]
+$ stack build
 ```
 
 ## Development
 This project relies on `accelerate` library which has a number of its own dependencies. Check accelerate's documentationfor the details.
 
 ## Dev Container
-There is a docker image at `nihon/compiler-dev` with all the dependencies installed. You can use it with VS Code's dev containers plugin. *Note*: for some reason, "haskell.serverExecutablePath" option is not set to "haskell-language-server-8.10.7" from time to time, so if you start getting gradle errors, try setting it up manually.
+There is a docker image at `nihon/compiler-dev` with all the dependencies installed. You can use it with VS Code's `Dev Containers` plugin.
+
+*Note*: Accelerate takes up some time to build on the first run, as well as takes up up to 6 GB RAM.
+
+*Note*: For an unknown reason, sometimes "haskell.serverExecutablePath" option is not set to "haskell-language-server-8.10.7", although it is specified in devcontainer.json. If you start getting gradle errors, try setting it up manually.
 
 ## Make changes to the language
 First make sure that you have *bnfc*, *happy* and *alex* installed
