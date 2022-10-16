@@ -24,11 +24,13 @@ source-repository head
 
 library
   exposed-modules:
+      Frontend
       Lang.Abs
       Lang.ErrM
       Lang.Lex
       Lang.Par
       Lang.Print
+      Print
   other-modules:
       Paths_parallel_type_inference
   hs-source-dirs:

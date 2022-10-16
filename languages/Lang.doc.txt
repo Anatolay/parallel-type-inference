@@ -16,27 +16,18 @@ reserved words excluded.
 
 
 ===Literals===
-Integer literals //Integer// are nonempty sequences of digits.
-
-
-String literals //String// have the form
-``"``//x//``"``}, where //x// is any sequence of any characters
-except ``"`` unless preceded by ``\``.
-
-
 
 
 ===Reserved words and symbols===
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in Lang are the following:
-  | ``fn`` | ``return`` | ``while`` |
+  | ``else`` | ``if`` | ``in`` | ``let``
+  | ``pred`` | ``succ`` | ``then`` | ``λ``
 
 The symbols used in Lang are the following:
-  | ( | ) | { | }
-  | , | = | ; | <
-  | > | == | + | -
-  | * | / |  |
+  | ; | . | = | 0
+  | ( | ) |  |
 
 ===Comments===
 There are no single-line comments in the grammar.There are no multiple-line comments in the grammar.
@@ -47,36 +38,21 @@ The symbols -> (production),  **|**  (union)
 and **eps** (empty rule) belong to the BNF notation.
 All other symbols are terminals.
 
-  | //Program// | -> | //[Stm]//
-  | //Function// | -> | ``fn`` //Ident// ``(`` //[Ident]// ``)`` ``{`` //[Stm]// ``}``
-  | //[Stm]// | -> | **eps**
-  |  |  **|**  | //Stm// //[Stm]//
-  | //[Ident]// | -> | **eps**
-  |  |  **|**  | //Ident//
-  |  |  **|**  | //Ident// ``,`` //[Ident]//
-  | //Stm// | -> | //Ident// ``=`` //Exp//
-  |  |  **|**  | //Exp// ``;``
-  |  |  **|**  | //Function//
-  |  |  **|**  | ``while`` ``(`` //Exp// ``)`` ``{`` //[Stm]// ``}``
-  |  |  **|**  | ``return`` //Exp// ``;``
-  | //Exp// | -> | //Exp1// ``<`` //Exp1//
-  |  |  **|**  | //Exp1// ``>`` //Exp1//
-  |  |  **|**  | //Exp1// ``==`` //Exp1//
-  |  |  **|**  | //Exp1//
-  | //Exp1// | -> | //Exp1// ``+`` //Exp2//
-  |  |  **|**  | //Exp// ``-`` //Exp1//
-  |  |  **|**  | //Exp2//
-  | //Exp2// | -> | //Exp2// ``*`` //Exp3//
-  |  |  **|**  | //Exp2// ``/`` //Exp3//
-  |  |  **|**  | //Exp3//
-  | //Exp3// | -> | //Ident// ``(`` //[Exp]// ``)``
-  |  |  **|**  | //Ident//
-  |  |  **|**  | //Integer//
-  |  |  **|**  | //String//
-  |  |  **|**  | ``(`` //Exp// ``)``
+  | //Program// | -> | //[Exp]//
   | //[Exp]// | -> | **eps**
-  |  |  **|**  | //Exp//
-  |  |  **|**  | //Exp// ``,`` //[Exp]//
+  |  |  **|**  | //Exp// ``;`` //[Exp]//
+  | //Exp// | -> | ``λ`` //Ident// ``.`` //Exp//
+  |  |  **|**  | ``succ`` //Exp//
+  |  |  **|**  | ``pred`` //Exp//
+  |  |  **|**  | ``if`` //Exp// ``then`` //Exp// ``else`` //Exp//
+  |  |  **|**  | ``let`` //Ident// ``=`` //Exp// ``in`` //Exp//
+  |  |  **|**  | //Exp1//
+  | //Exp1// | -> | //Exp// //Exp1//
+  |  |  **|**  | //Exp2//
+  | //Exp2// | -> | ``0``
+  |  |  **|**  | //Ident//
+  |  |  **|**  | //Exp3//
+  | //Exp3// | -> | ``(`` //Exp// ``)``
 
 
 

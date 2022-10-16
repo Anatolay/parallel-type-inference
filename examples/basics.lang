@@ -1,0 +1,8 @@
+0 ;
+x ;
+succ 0 ;
+pred 0 ;
+λx.x ;
+f 0 ;
+if 0 then 0 else 0 ;
+let f = λx.x in f ;

@@ -1,0 +1,1 @@
+let f = λg.λx.g x in f (λz. succ z) 0 ;

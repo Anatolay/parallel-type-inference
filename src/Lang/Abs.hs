@@ -6,36 +6,22 @@
 
 module Lang.Abs where
 
-import Prelude (Integer, String)
+import Prelude (String)
 import qualified Prelude as C (Eq, Ord, Show, Read)
 import qualified Data.String
 
-data Program = Prog [Stm]
-  deriving (C.Eq, C.Ord, C.Show, C.Read)
-
-data Function = Fun Ident [Ident] [Stm]
-  deriving (C.Eq, C.Ord, C.Show, C.Read)
-
-data Stm
-    = SAss Ident Exp
-    | SEpx Exp
-    | SFunDef Function
-    | SWhile Exp [Stm]
-    | SReturn Exp
+data Program = Prog [Exp]
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 data Exp
-    = ELt Exp Exp
-    | EGt Exp Exp
-    | EEq Exp Exp
-    | EAdd Exp Exp
-    | ESub Exp Exp
-    | EMul Exp Exp
-    | EDiv Exp Exp
-    | ECall Ident [Exp]
-    | EVar Ident
-    | EInt Integer
-    | EStr String
+    = Lambda Ident Exp
+    | Succ Exp
+    | Pred Exp
+    | Cond Exp Exp Exp
+    | Let Ident Exp Exp
+    | Appl Exp Exp
+    | Zero
+    | Var Ident
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 newtype Ident = Ident String

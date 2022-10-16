@@ -142,44 +142,19 @@ instance Print Lang.Abs.Ident where
   prt _ (Lang.Abs.Ident i) = doc $ showString i
 instance Print Lang.Abs.Program where
   prt i = \case
-    Lang.Abs.Prog stms -> prPrec i 0 (concatD [prt 0 stms])
-
-instance Print Lang.Abs.Function where
-  prt i = \case
-    Lang.Abs.Fun id_ ids stms -> prPrec i 0 (concatD [doc (showString "fn"), prt 0 id_, doc (showString "("), prt 0 ids, doc (showString ")"), doc (showString "{"), prt 0 stms, doc (showString "}")])
-
-instance Print [Lang.Abs.Stm] where
-  prt _ [] = concatD []
-  prt _ (x:xs) = concatD [prt 0 x, prt 0 xs]
-
-instance Print [Lang.Abs.Ident] where
-  prt _ [] = concatD []
-  prt _ [x] = concatD [prt 0 x]
-  prt _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
-
-instance Print Lang.Abs.Stm where
-  prt i = \case
-    Lang.Abs.SAss id_ exp -> prPrec i 0 (concatD [prt 0 id_, doc (showString "="), prt 0 exp])
-    Lang.Abs.SEpx exp -> prPrec i 0 (concatD [prt 0 exp, doc (showString ";")])
-    Lang.Abs.SFunDef function -> prPrec i 0 (concatD [prt 0 function])
-    Lang.Abs.SWhile exp stms -> prPrec i 0 (concatD [doc (showString "while"), doc (showString "("), prt 0 exp, doc (showString ")"), doc (showString "{"), prt 0 stms, doc (showString "}")])
-    Lang.Abs.SReturn exp -> prPrec i 0 (concatD [doc (showString "return"), prt 0 exp, doc (showString ";")])
-
-instance Print Lang.Abs.Exp where
-  prt i = \case
-    Lang.Abs.ELt exp1 exp2 -> prPrec i 0 (concatD [prt 1 exp1, doc (showString "<"), prt 1 exp2])
-    Lang.Abs.EGt exp1 exp2 -> prPrec i 0 (concatD [prt 1 exp1, doc (showString ">"), prt 1 exp2])
-    Lang.Abs.EEq exp1 exp2 -> prPrec i 0 (concatD [prt 1 exp1, doc (showString "=="), prt 1 exp2])
-    Lang.Abs.EAdd exp1 exp2 -> prPrec i 1 (concatD [prt 1 exp1, doc (showString "+"), prt 2 exp2])
-    Lang.Abs.ESub exp1 exp2 -> prPrec i 1 (concatD [prt 0 exp1, doc (showString "-"), prt 1 exp2])
-    Lang.Abs.EMul exp1 exp2 -> prPrec i 2 (concatD [prt 2 exp1, doc (showString "*"), prt 3 exp2])
-    Lang.Abs.EDiv exp1 exp2 -> prPrec i 2 (concatD [prt 2 exp1, doc (showString "/"), prt 3 exp2])
-    Lang.Abs.ECall id_ exps -> prPrec i 3 (concatD [prt 0 id_, doc (showString "("), prt 0 exps, doc (showString ")")])
-    Lang.Abs.EVar id_ -> prPrec i 3 (concatD [prt 0 id_])
-    Lang.Abs.EInt n -> prPrec i 3 (concatD [prt 0 n])
-    Lang.Abs.EStr str -> prPrec i 3 (concatD [printString str])
+    Lang.Abs.Prog exps -> prPrec i 0 (concatD [prt 0 exps])
 
 instance Print [Lang.Abs.Exp] where
   prt _ [] = concatD []
-  prt _ [x] = concatD [prt 0 x]
-  prt _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
+  prt _ (x:xs) = concatD [prt 0 x, doc (showString ";"), prt 0 xs]
+
+instance Print Lang.Abs.Exp where
+  prt i = \case
+    Lang.Abs.Lambda id_ exp -> prPrec i 0 (concatD [doc (showString "\955"), prt 0 id_, doc (showString "."), prt 0 exp])
+    Lang.Abs.Succ exp -> prPrec i 0 (concatD [doc (showString "succ"), prt 0 exp])
+    Lang.Abs.Pred exp -> prPrec i 0 (concatD [doc (showString "pred"), prt 0 exp])
+    Lang.Abs.Cond exp1 exp2 exp3 -> prPrec i 0 (concatD [doc (showString "if"), prt 0 exp1, doc (showString "then"), prt 0 exp2, doc (showString "else"), prt 0 exp3])
+    Lang.Abs.Let id_ exp1 exp2 -> prPrec i 0 (concatD [doc (showString "let"), prt 0 id_, doc (showString "="), prt 0 exp1, doc (showString "in"), prt 0 exp2])
+    Lang.Abs.Appl exp1 exp2 -> prPrec i 1 (concatD [prt 0 exp1, prt 1 exp2])
+    Lang.Abs.Zero -> prPrec i 2 (concatD [doc (showString "0")])
+    Lang.Abs.Var id_ -> prPrec i 2 (concatD [prt 0 id_])
