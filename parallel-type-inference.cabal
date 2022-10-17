@@ -30,6 +30,7 @@ library
       Lang.Lex
       Lang.Par
       Lang.Print
+      Parallel
       Print
   other-modules:
       Paths_parallel_type_inference

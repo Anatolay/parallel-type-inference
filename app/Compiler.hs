@@ -2,7 +2,7 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit        ( exitFailure, exitSuccess )
 import Control.Monad      ( when )
 
-import Print
+import Print ( run, runFile, runVectorTree )
 
 usage :: IO ()
 usage = do
@@ -10,7 +10,8 @@ usage = do
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
     , "  (no arguments)  Parse stdin verbosely."
-    , "  (filepaths)         Parse content of files verbosely."
+    , "  -m              Parse stdin, print matrix AST."
+    , "  (filepaths)     Parse content of files verbosely."
     ]
   exitFailure
 
@@ -20,4 +21,5 @@ main = do
   case args of
     ["--help"] -> usage
     [] -> getContents >>= run
+    ["-m"] -> getContents >>= runVectorTree
     fs -> mapM_ runFile fs
