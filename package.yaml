@@ -24,7 +24,8 @@ library:
   dependencies:
   - array
   - containers
-
+  - mtl
+  - transformers
 
 executables:
   compiler:
