@@ -2,6 +2,8 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit        ( exitFailure, exitSuccess )
 import Control.Monad      ( when )
 
+import Frontend (parse)
+import Inference.Basic
 import Print ( run, runFile, runVectorTree )
 
 usage :: IO ()
@@ -22,4 +24,9 @@ main = do
     ["--help"] -> usage
     [] -> getContents >>= run
     ["-m"] -> getContents >>= runVectorTree
+    ["--basic"] -> do
+      src <- getContents
+      case parse src of
+        Left _ -> print "Parse Error"
+        Right tree -> print $ typecheckProgram tree
     fs -> mapM_ runFile fs

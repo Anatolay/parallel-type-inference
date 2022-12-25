@@ -4,51 +4,138 @@ import Control.Monad.Trans.State
 import Control.Monad.Trans (lift)
 import qualified Data.Set as Set
 import Lang.Abs (Exp(..), Ident(Ident), Program(Prog))
+import qualified Data.List as List
 
 data Type
   = Variable String
   | Function Type Type
-  | Terminal String
-  deriving Eq
+  | Nat
+  deriving (Eq, Show)
 
 type Constraint = (Type, Type)
--- type Context = [(String, Type)]
+type Constraints = [Constraint]
+type Gamma = [(Ident, Type)]
+
 data Context = Context
-  { ctxContext :: [(String, Type)]
+  { ctxGamma :: Gamma
+  , ctxConstraints :: Constraints
   , ctxNames :: [String]
   }
 
-freshContext :: Context
-freshContext = Context
-  { ctxContext = []
+type TypeChecker a = StateT Context (Either ()) a
+
+freshVar :: TypeChecker Type
+freshVar = do
+  (Context g c names) <- get
+  let (fresh:rest) = names -- (!) might fail on a finite list
+  put (Context g c rest)
+  pure $ Variable fresh
+
+initContext :: Context
+initContext = Context
+  { ctxGamma = []
+  , ctxConstraints = []
   , ctxNames = ['V' : show x | x <- [1..]]
   }
 
--- TODO
-infer :: Exp -> StateT Context (Either ()) (Type, Constraint)
+getGamma :: TypeChecker Gamma
+getGamma = fmap ctxGamma get
+
+putGamma :: Gamma -> TypeChecker ()
+putGamma gamma = do
+  ctx <- get
+  put $ ctx { ctxGamma = gamma }
+
+appendGamma :: Ident -> Type -> TypeChecker ()
+appendGamma name ty = do
+  gamma <- getGamma
+  putGamma $ (name, ty) : gamma
+
+getConstraints :: TypeChecker Constraints
+getConstraints = fmap ctxConstraints get
+
+putConstraints :: Constraints -> TypeChecker ()
+putConstraints cs = do
+  ctx <- get
+  put $ ctx { ctxConstraints = cs }
+
+appendConstraints :: Type -> Type -> TypeChecker ()
+appendConstraints ty ty' = do
+  cs <- getConstraints
+  putConstraints $ (ty, ty') : cs
+
+askGamma :: String -> Gamma -> Maybe Type
+askGamma var [] = Nothing
+askGamma var ((Ident name, ty) : rest) = if var == name then Just ty else askGamma var rest
+
+infer :: Exp -> TypeChecker Type
 infer e = case e of
   Lambda (Ident x) exp -> do
-    lift $ Left ()
+    bodyTy <- infer exp
+    gamma <- getGamma
+    argType <- case askGamma x gamma of
+      Nothing -> freshVar
+      Just ty -> pure ty
+    lift $ Right $ Function argType bodyTy
   Succ exp -> do
-    lift $ Left ()
+    ty <- infer exp
+    case ty of
+      Variable s -> do
+        appendConstraints (Variable s) Nat -- TODO: should substitute?
+        return Nat
+      Function ty' ty2 -> lift $ Left ()
+      Nat -> return Nat
   Pred exp -> do
-    lift $ Left ()
-  Cond exp exp' exp2 -> do
-    lift $ Left ()
-  Let (Ident x) exp exp' -> do
-    lift $ Left ()
-  Appl exp exp' -> do
-    lift $ Left ()
+    ty <- infer exp
+    case ty of
+      Variable s -> do
+        appendConstraints (Variable s) Nat -- TODO: should substitute?
+        return Nat
+      Function ty' ty2 -> lift $ Left ()
+      Nat -> return Nat
+  Cond cond true false -> do
+    condTy <- infer cond
+    case condTy of
+      Variable s -> do
+        appendConstraints (Variable s) Nat -- TODO: should substitute?
+      Function ty ty' -> lift $ Left ()
+      Nat -> return ()
+    trueTy <- infer true
+    falseTy <- infer false
+    appendConstraints trueTy falseTy
+    return trueTy
+  Let ident@(Ident x) bind body -> do
+    bindTy <- infer bind
+    appendGamma ident bindTy
+    infer body
+  Appl fun arg -> do
+    funTy <- infer fun
+    argTy <- infer arg
+    case funTy of
+      Variable s -> do
+        fresh <- freshVar
+        appendConstraints funTy (Function argTy fresh)
+        return fresh
+      Function ar body -> do
+        appendConstraints ar argTy
+        return body
+      Nat -> lift $ Left ()
   Zero -> do
-    lift $ Left ()
-  Var (Ident x) -> do
-    lift $ Left ()
+    lift $ Right Nat
+  Var ident@(Ident x) -> do
+    gamma <- getGamma
+    case askGamma x gamma of
+      Nothing -> do
+        newVar <- freshVar
+        appendGamma ident newVar
+        pure newVar
+      Just ty -> pure ty
 
 typecheck :: Exp -> Either () Type
-typecheck exp = let (t, cs) = infer' exp () in unify t cs
+typecheck exp = fst <$> runStateT (infer exp) initContext
 
-infer' :: Exp -> () -> (Type, [Constraint])
-infer' = undefined
+typecheckProgram :: Program -> [Either () Type]
+typecheckProgram (Prog lst) = fmap typecheck lst
 
 unify :: Type -> [Constraint] -> Either () Type
 unify t [] = Right t
@@ -81,13 +168,13 @@ fv :: Type -> Set.Set String
 fv ty = case ty of
   Variable s -> Set.singleton s
   Function arg res -> fv arg <> fv res
-  Terminal s -> Set.empty
+  Nat -> Set.empty
 
 substitute :: String -> Type -> Type -> Type
 substitute varName newType t = case t of
   Variable s -> if s == varName then newType else Variable s
   Function arg res -> Function (substitute varName newType arg) (substitute varName newType res)
-  Terminal s -> Terminal s
+  Nat -> Nat
 
 substituteConstraint :: String -> Type -> Constraint -> Constraint
 substituteConstraint varName newType (t, t2) =
