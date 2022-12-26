@@ -22,6 +22,10 @@ data Context = Context
   , ctxNames :: [String]
   }
 
+instance Show Context where
+  show ctx =
+    "Context { ctxGamma: " ++ show (ctxGamma ctx) ++ "; ctxConstraints: " ++ show (ctxConstraints ctx)
+
 type TypeChecker a = StateT Context (Either ()) a
 
 freshVar :: TypeChecker Type
@@ -132,7 +136,9 @@ infer e = case e of
       Just ty -> pure ty
 
 typecheck :: Exp -> Either () Type
-typecheck exp = fst <$> runStateT (infer exp) initContext
+typecheck exp = case runStateT (infer exp) initContext of
+  Left () -> Left ()
+  Right (ty, ctx) -> unify ty (ctxConstraints ctx)
 
 typecheckProgram :: Program -> [Either () Type]
 typecheckProgram (Prog lst) = fmap typecheck lst

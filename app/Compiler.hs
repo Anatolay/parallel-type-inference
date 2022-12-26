@@ -1,6 +1,8 @@
 import System.Environment ( getArgs, getProgName )
 import System.Exit        ( exitFailure, exitSuccess )
 import Control.Monad      ( when )
+import Control.Monad.Trans.State (runStateT)
+import Lang.Abs ( Program(Prog) )
 
 import Frontend (parse)
 import Inference.Basic
@@ -29,4 +31,11 @@ main = do
       case parse src of
         Left _ -> print "Parse Error"
         Right tree -> print $ typecheckProgram tree
+    ["--infer"] -> do
+      src <- getContents
+      case parse src of
+        Left _ -> print "Parse Error"
+        Right (Prog lst) -> case lst of
+          [] -> print "Empty"
+          exp : _ -> print $ runStateT (infer exp) initContext
     fs -> mapM_ runFile fs

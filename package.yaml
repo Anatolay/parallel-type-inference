@@ -37,6 +37,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - parallel-type-inference
+    - transformers
 
 
 tests:
