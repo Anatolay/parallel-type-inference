@@ -5,7 +5,7 @@ module Print where
 import Data.Array.Accelerate (toList, (:.)((:.)), DIM1, arrayShape)
 import Frontend (getTokens, parseTokens)
 import qualified Lang.Print (Print, printTree)
-import Parallel ( VectorTree, astToVectorTree )
+import Parallel.AST ( VectorTree, astToVectorTree )
 import System.Exit (exitFailure, exitSuccess)
 
 -- | Same as `run`, but accepts a program's source file path instead of a String

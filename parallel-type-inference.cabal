@@ -32,7 +32,8 @@ library
       Lang.Lex
       Lang.Par
       Lang.Print
-      Parallel
+      Parallel.AST
+      Parallel.Inference.Types
       Print
   other-modules:
       Paths_parallel_type_inference

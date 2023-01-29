@@ -1,4 +1,4 @@
-module Parallel where
+module Parallel.AST where
 
 import Data.Array.Accelerate
   ( Matrix

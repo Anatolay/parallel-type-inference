@@ -1,4 +1,4 @@
--- module Inference.Concurrent where
+module Inference.Concurrent where
 -- import Data.STRef
 -- import Control.Monad.ST
 -- import Lang.Abs (Exp(..), Ident(Ident), Program(Prog))
