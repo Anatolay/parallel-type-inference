@@ -64,8 +64,44 @@ expandFunctionEquality matrix funReference =
 
   in expand expandCount expandTarget matrix
 
+-- | For each type variable on the right, swap it with
+-- the value on the left
 leftifyTypeVariables :: Acc ConstraintMatrix -> Acc ConstraintMatrix
 leftifyTypeVariables = map leftify
   where
     leftify pair@(T2 vecTy0 vecTy1) =
       fst vecTy1 == variable_ ? (T2 vecTy1 vecTy0, pair)
+
+-- | Substitute all occurencies of a type variable in Constraint Matrix
+-- with a value from typeMap
+--
+-- In typeMap, each value on the left is a type variable and
+-- each value on the right is not a type variable (not enforced, unfortunately)
+substituteTypeVariable :: Acc ConstraintMatrix -> Acc ConstraintMatrix -> Acc ConstraintMatrix
+substituteTypeVariable typeMap matrix =
+  let
+    -- If type variable is in map, return the stored value
+    -- Otherwise, return the type variable itself
+    lookup :: Exp VectorizedType -> Acc ConstraintMatrix -> Exp VectorizedType
+    lookup vecTy@(T2 _ val) typeMap =
+      let
+        typeValues = afst $ filter (\(T2 (T2 _ key) _) -> key == val) typeMap
+      in null typeValues ? (vecTy, snd $ typeValues !! 0)
+    
+    substitute (T2 vecTy0 vecTy1) =
+      T2 (lookup vecTy0 typeMap) (lookup vecTy1 typeMap)
+
+    -- sub :: Exp VectorizedType -> Exp TypePair -> Exp VectorizedType
+    -- sub vecTy pair = snd vecTy == key ? (val, vecTy)
+    --   where
+    --     T2 (T2 _ key) val = pair
+  in map substitute matrix
+
+-- | Return True if there is an error
+checkErrors :: Acc ConstraintMatrix -> Acc (Scalar Bool)
+checkErrors = any isError
+  where
+    isError (T2 (T2 ty0 _) (T2 ty1 _))
+      =  ty0 == nat_ && ty1 == function_
+      || ty0 == function_ && ty1 == nat_
+
