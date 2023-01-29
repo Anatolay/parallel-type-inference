@@ -1,6 +1,6 @@
 module Inference.Basic where
 
-import Control.Monad.Trans.State
+import Control.Monad.Trans.State ( get, put, StateT(runStateT) )
 import Control.Monad.Trans (lift)
 import qualified Data.Set as Set
 import Lang.Abs (Exp(..), Ident(Ident), Program(Prog))
@@ -10,7 +10,19 @@ data Type
   = Variable String
   | Function Type Type
   | Nat
-  deriving (Eq, Show)
+  deriving Eq
+
+instance Show Type where
+  show Nat = "Nat"
+  show (Variable v) = v
+  show (Function arg body) =
+    let
+      argString = case arg of
+        Nat -> "Nat"
+        Variable v -> v
+        Function _ _ -> "(" ++ show arg ++ ")"
+    in
+      argString ++ " —> " ++ show body
 
 type Constraint = (Type, Type)
 type Constraints = [Constraint]

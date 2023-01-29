@@ -26,6 +26,7 @@ library
   exposed-modules:
       Frontend
       Inference.Basic
+      Inference.Concurrent
       Lang.Abs
       Lang.ErrM
       Lang.Lex
