@@ -22,21 +22,7 @@ data NodeType
   | SuccOperator
   | PredOperator
   | Constant
-  deriving Eq
-
-nodeTypes :: [NodeType]
-nodeTypes = [Variable, LambdaAbstraction, Application, LetExpr, Conditional, SuccOperator, PredOperator, Constant]
-
-indexLookup :: Int -> [a] -> Maybe a
-indexLookup _ [] = Nothing
-indexLookup n (x:xs)
-  | n < 0 = Nothing
-  | n == 0 = Just x
-  | otherwise = indexLookup (n-1) xs
-
-instance Enum NodeType where
-  fromEnum nt = fromMaybe 0 (elemIndex nt nodeTypes)
-  toEnum n = fromMaybe Variable (indexLookup n nodeTypes)
+  deriving (Eq, Enum)
 
 type Depth = Int
 type Node = (Depth, NodeType, String)
@@ -45,7 +31,7 @@ toNodeList :: Program -> [Node]
 toNodeList (Prog stms)
   = concatMap (expToNodeList 0) stms
 
--- TODO: proper values
+
 expToNodeList :: Depth -> Exp -> [Node]
 expToNodeList depth (Lambda (Ident x) exp) =
   (depth, LambdaAbstraction, "lam") :
@@ -80,10 +66,11 @@ expToNodeList depth (Appl fun exp) =
 expToNodeList depth Zero = [(depth, Constant, "0")]
 expToNodeList depth (Var (Ident x)) = [(depth, Variable, x)]
 
+
 type VectorTree = (Vector Int, Vector Depth, Vector Int, Matrix Char, Vector Int, Vector Int)
 
 astToVectorTree :: Program -> VectorTree
-astToVectorTree ast = (indAcc, depthAcc, nodeTypeAcc, valueAcc, typeIndAcc, typeAcc)
+astToVectorTree ast = (indArr, depthArr, nodeTypeArr, valueArr, typeIndArr, typeArr)
   where
     nodeList = toNodeList ast
 
@@ -94,28 +81,20 @@ astToVectorTree ast = (indAcc, depthAcc, nodeTypeAcc, valueAcc, typeIndAcc, type
     maxLength arr = maximum (map length arr)
 
     -- Row indexes, might be substituted by node coordinates
-    indAcc      = A.fromList (Z :. length values) [0..]
+    indArr      = A.fromList (Z :. length values) [0..]
 
-    depthAcc    = A.fromList (Z :. length depths) depths
-    nodeTypeAcc = A.fromList (Z :. length depths) nodeTypes
-    valueAcc    = A.fromList (Z :. length values :. maxLength values) (concat values)
+    depthArr    = A.fromList (Z :. length depths) depths
+    nodeTypeArr = A.fromList (Z :. length depths) nodeTypes
+    valueArr    = A.fromList (Z :. length values :. maxLength values) (concat values)
     -- Index to refer to the type of another row
-    typeIndAcc  = A.fromList (Z :. length values) [0..]
+    typeIndArr  = A.fromList (Z :. length values) [0..]
     -- Index in type matrix
-    typeAcc     = A.fromList (Z :. length values) (repeat $ -1)
+    typeArr     = A.fromList (Z :. length values) (repeat $ -1)
 
 type VectorTreeAcc = Acc VectorTree
 
 vectorTreeToAcc :: VectorTree -> Acc VectorTree
-vectorTreeToAcc (i, d, nt, v, ti, t) =
-  let
-    i'  = A.use i
-    d'  = A.use d
-    nt' = A.use nt
-    v'  = A.use v
-    ti' = A.use ti
-    t'  = A.use t
-  in A.lift (i', d', nt', v', ti', t')
+vectorTreeToAcc = A.use
 
 padRight :: Int -> a -> [a] -> [a]
 padRight n e arr
