@@ -21,3 +21,14 @@ updateTypes matrix indices values = updatedMatrix
     updatedTypes = scatter indices types values
     updatedMatrix = T3 updatedTypes args res
 
+updateArgRes :: Acc TypeMatrix -> Acc TypeMatrix
+updateArgRes (T3 types arg res) = updatedTypeMatrix
+  where
+    lookup :: Exp VectorizedType -> Exp VectorizedType
+    lookup vecTy@(T2 ty val) =
+      (ty == variable_) ? (types !! val, vecTy)
+    
+    updatedTypeMatrix = T3 types (map lookup arg) (map lookup res)
+
+updateTypeMatrix :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector VectorizedType) -> Acc TypeMatrix
+updateTypeMatrix matrix indices values = updateArgRes $ updateTypes matrix indices values

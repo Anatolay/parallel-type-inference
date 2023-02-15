@@ -75,8 +75,8 @@ generateTypeMap matrix =
 --
 -- For each type variable n in the constraint matrix, it is substituted
 -- with the type at index n of the type vector
-substituteTypeVariable :: Acc (Vector VectorizedType) -> Acc ConstraintMatrix -> Acc ConstraintMatrix
-substituteTypeVariable typeVec matrix =
+substituteTypeVariables :: Acc (Vector VectorizedType) -> Acc ConstraintMatrix -> Acc ConstraintMatrix
+substituteTypeVariables typeVec matrix =
   let
     lookup :: Exp VectorizedType -> Exp VectorizedType
     lookup vecTy@(T2 ty val) =
