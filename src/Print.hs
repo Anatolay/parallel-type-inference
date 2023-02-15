@@ -40,7 +40,7 @@ printTree tree
       putStrLn $ "\n[Linearized tree]\n\n" ++ showTree tree
 
 printVectorTree :: VectorTree -> IO ()
-printVectorTree (i, d, nt, v, ti, t) =
+printVectorTree (i, d, nt, v) =
   let
     charMatrixToLines cm = go (toList cm) [] 0
       where
@@ -62,10 +62,8 @@ printVectorTree (i, d, nt, v, ti, t) =
     d' = show <$> toList d
     nt' = show <$> toList nt
     v' = charMatrixToLines v
-    ti' = show <$> toList ti
-    t' = show <$> toList t
 
-  in putStrLn . unlines . combineLines $ [i', d', nt', v', ti', t']
+  in putStrLn . unlines . combineLines $ [i', d', nt', v']
 
 runVectorTree :: String -> IO ()
 runVectorTree s = case parseTokens tokens of

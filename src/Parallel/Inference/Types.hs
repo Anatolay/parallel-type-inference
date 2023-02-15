@@ -5,6 +5,17 @@ module Parallel.Inference.Types where
 
 import Data.Array.Accelerate as A
 
+
+-- WARNING!! Handle with caution
+noneTag :: Int
+noneTag = -1
+variableTag :: Int
+variableTag = 0
+functionTag :: Int
+functionTag = 1
+natTag :: Int
+natTag = 2
+
 none_ :: Exp Int
 none_ = -1
 variable_ :: Exp Int
@@ -24,7 +35,7 @@ type Tag = Int
 type VectorizedType = (Tag, Int)
 type TypePair = (VectorizedType, VectorizedType)
 
-type TypeMatrix = Vector (VectorizedType, VectorizedType, VectorizedType)
+type TypeMatrix = (Vector VectorizedType, Vector VectorizedType, Vector VectorizedType)
 type ConstraintMatrix = Vector TypePair
 
 

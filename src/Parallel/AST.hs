@@ -66,11 +66,12 @@ expToNodeList depth (Appl fun exp) =
 expToNodeList depth Zero = [(depth, Constant, "0")]
 expToNodeList depth (Var (Ident x)) = [(depth, Variable, x)]
 
-
-type VectorTree = (Vector Int, Vector Depth, Vector Int, Matrix Char, Vector Int, Vector Int)
+type Index = Int
+type NodeTag = Int
+type VectorTree = (Vector Index, Vector Depth, Vector NodeTag, Matrix Char)
 
 astToVectorTree :: Program -> VectorTree
-astToVectorTree ast = (indArr, depthArr, nodeTypeArr, valueArr, typeIndArr, typeArr)
+astToVectorTree ast = (indVec, depthVec, nodeTypeVec, valueMatrix)
   where
     nodeList = toNodeList ast
 
@@ -81,15 +82,11 @@ astToVectorTree ast = (indArr, depthArr, nodeTypeArr, valueArr, typeIndArr, type
     maxLength arr = maximum (map length arr)
 
     -- Row indexes, might be substituted by node coordinates
-    indArr      = A.fromList (Z :. length values) [0..]
+    indVec      = A.fromList (Z :. length values) [0..]
 
-    depthArr    = A.fromList (Z :. length depths) depths
-    nodeTypeArr = A.fromList (Z :. length depths) nodeTypes
-    valueArr    = A.fromList (Z :. length values :. maxLength values) (concat values)
-    -- Index to refer to the type of another row
-    typeIndArr  = A.fromList (Z :. length values) [0..]
-    -- Index in type matrix
-    typeArr     = A.fromList (Z :. length values) (repeat $ -1)
+    depthVec    = A.fromList (Z :. length depths) depths
+    nodeTypeVec = A.fromList (Z :. length depths) nodeTypes
+    valueMatrix    = A.fromList (Z :. length values :. maxLength values) (concat values)
 
 type VectorTreeAcc = Acc VectorTree
 

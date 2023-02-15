@@ -55,26 +55,35 @@ leftifyTypeVariables :: Acc ConstraintMatrix -> Acc ConstraintMatrix
 leftifyTypeVariables = map leftify
   where
     leftify pair@(T2 vecTy0 vecTy1) =
-      fst vecTy1 == variable_ ? (T2 vecTy1 vecTy0, pair)
+      (fst vecTy1 == variable_) ? (T2 vecTy1 vecTy0, pair)
+
+-- | Extract constraints of the form `type var=other` and generate a mapping
+generateTypeMap :: Acc ConstraintMatrix -> (Acc (Vector Int), Acc (Vector VectorizedType))
+generateTypeMap matrix =
+  let
+    T2 typeMap _ = filter predicate matrix
+
+    predicate (T2 (T2 ty0 _) (T2 ty1 _)) =
+      ty0 == variable_ && ty1 /= variable_
+    
+    indices = map (\(T2 (T2 _ ind) _) -> ind) typeMap
+    values = map (\(T2 _ val) -> val) typeMap
+  in (indices, values)
 
 -- | Substitute all occurencies of a type variable in Constraint Matrix
--- with a value from typeMap
+-- with a value from type vector
 --
--- In typeMap, each value on the left is a type variable and
--- each value on the right is not a type variable (not enforced, unfortunately)
-substituteTypeVariable :: Acc ConstraintMatrix -> Acc ConstraintMatrix -> Acc ConstraintMatrix
-substituteTypeVariable typeMap matrix =
+-- For each type variable n in the constraint matrix, it is substituted
+-- with the type at index n of the type vector
+substituteTypeVariable :: Acc (Vector VectorizedType) -> Acc ConstraintMatrix -> Acc ConstraintMatrix
+substituteTypeVariable typeVec matrix =
   let
-    -- If type variable is in map, return the stored value
-    -- Otherwise, return the type variable itself
-    lookup :: Exp VectorizedType -> Acc ConstraintMatrix -> Exp VectorizedType
-    lookup vecTy@(T2 _ val) typeMap =
-      let
-        typeValues = afst $ filter (\(T2 (T2 _ key) _) -> key == val) typeMap
-      in null typeValues ? (vecTy, snd $ typeValues !! 0)
-
-    substitute (T2 vecTy0 vecTy1) =
-      T2 (lookup vecTy0 typeMap) (lookup vecTy1 typeMap)
+    lookup :: Exp VectorizedType -> Exp VectorizedType
+    lookup vecTy@(T2 ty val) =
+      (ty == variable_) ? (typeVec !! val, vecTy)
+    
+    substitute :: Exp TypePair -> Exp TypePair
+    substitute (T2 vecTy0 vecTy1) = T2 (lookup vecTy0) (lookup vecTy1)
 
   in map substitute matrix
 
