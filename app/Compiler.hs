@@ -4,8 +4,14 @@ import Control.Monad      ( when )
 import Control.Monad.Trans.State (runStateT)
 import Lang.Abs ( Program(Prog) )
 
+import Data.Array.Accelerate as A
+
 import Frontend (parse)
+
 import Inference.Basic
+import Parallel.Inference.Constraints
+import Parallel.Inference.TypeMatrix
+import Parallel.Inference.Types
 import Print ( run, runFile, runVectorTree )
 
 usage :: IO ()

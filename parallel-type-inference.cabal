@@ -37,6 +37,7 @@ library
       Parallel.Inference.Constraints
       Parallel.Inference.TypeMatrix
       Parallel.Inference.Types
+      Parallel.Utils
       Print
   other-modules:
       Paths_parallel_type_inference
