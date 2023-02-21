@@ -14,6 +14,7 @@ import Control.Monad.State
 import Data.List (elemIndex)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Data.List (unzip5)
 
 data NodeType
   = Variable
@@ -27,8 +28,9 @@ data NodeType
   deriving (Eq, Enum)
 
 type Depth = Int
+type Parent = Int
 type TypeIndex = Int
-type Node = (Depth, NodeType, String, TypeIndex)
+type Node = (Depth, Parent, NodeType, String, TypeIndex)
 
 type VarMap = Map.Map String Int
 
@@ -37,6 +39,7 @@ data ConverterState = ConverterState
   , csNodeList :: [Node]
   , csDepth :: Depth
   , csIndex :: Int
+  , csParent :: Int
   }
 type Converter a = State ConverterState a
 
@@ -46,11 +49,6 @@ appendNode node = do
   let nodeList = csNodeList state
   put state { csNodeList = node : nodeList }
 
-incr :: Converter ()
-incr = do
-  state <- get
-  let ind = csIndex state
-  put state { csIndex = ind + 1 }
 
 getTypeInd :: String -> Converter (Maybe TypeIndex)
 getTypeInd var = do
@@ -79,6 +77,14 @@ setDepth depth = do
   state <- get
   put state { csDepth = depth }
 
+getParent :: Converter Parent
+getParent = gets csParent
+
+setParent :: Parent -> Converter ()
+setParent par = do
+  state <- get
+  put state { csParent = par }
+
 expToNodeList :: Exp -> [Node]
 expToNodeList exp = nodeList
   where
@@ -89,102 +95,121 @@ expToNodeList exp = nodeList
       , csNodeList = []
       , csDepth = 0
       , csIndex = 0
+      , csParent = -1
       }
 
 convert :: Exp -> Converter ()
 convert (Lambda (Ident x) exp) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
   -- variable x is newly introduced, add to the map
   setTypeInd x (ind + 1)
 
-  appendNode (depth, LambdaAbstraction, "lam", ind)
-  appendNode (depth + 1, Variable, x, ind + 1)
+  appendNode (depth, parent, LambdaAbstraction, "lam", ind)
+  appendNode (depth + 1, ind, Variable, x, ind + 1)
 
   setIndex $ ind + 2
 
   setDepth $ depth + 1
+  setParent ind
   convert exp
 
 convert (Succ exp) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
-  appendNode (depth, SuccOperator, "succ", ind)
+  appendNode (depth, parent, SuccOperator, "succ", ind)
 
   setIndex $ ind + 1
   
   setDepth $ depth + 1
+  setParent ind
   convert exp
 
 convert (Pred exp) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
-  appendNode (depth, PredOperator, "pred", ind)
+  appendNode (depth, parent, PredOperator, "pred", ind)
   
   setIndex $ ind + 1
-  
+
   setDepth $ depth + 1
+  setParent ind
   convert exp
 
 convert (Cond cond trueExp falseExp) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
-  appendNode (depth, Conditional, "if", ind)
+  appendNode (depth, parent, Conditional, "if", ind)
   
   setIndex $ ind + 1
 
   setDepth $ depth + 1
+  setParent ind
   convert cond
 
   setDepth $ depth + 1
+  setParent ind
   convert trueExp
   
   setDepth $ depth + 1
+  setParent ind
   convert falseExp
 
 convert (Let (Ident x) val body) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
   -- variable x is newly introduced, add to the map
   setTypeInd x (ind + 1)
-  appendNode (depth, LetExpr, "let", ind)
-  appendNode (depth + 1, Variable, x, ind+1)
+  appendNode (depth, parent, LetExpr, "let", ind)
+  appendNode (depth + 1, ind, Variable, x, ind+1)
 
   setIndex $ ind + 2
 
   setDepth $ depth + 1
+  setParent ind
   convert val
 
   setDepth $ depth + 1
+  setParent ind
   convert body
 
 convert (Appl fun exp) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
-  appendNode (depth, Application, "@", ind)
+  appendNode (depth, parent, Application, "@", ind)
 
   setIndex $ ind + 1
 
   setDepth $ depth + 1
+  setParent ind
   convert fun
 
   setDepth $ depth + 1
+  setParent ind
   convert exp
 
 convert Zero = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
-  appendNode (depth, Constant, "0", ind)
+  appendNode (depth, parent, Constant, "0", ind)
   setIndex $ ind + 1
 
 convert (Var (Ident x)) = do
   depth <- getDepth
+  parent <- getParent
   ind <- getIndex
   -- variable x is either free or already introduced
   -- If free, getTypeInd return Nothing and we keep ind
   -- Else we use value returned by getTypeInd
   xInd <- fmap (fromMaybe ind) (getTypeInd x)
-  appendNode (depth, Variable, x, xInd)
+  appendNode (depth, parent, Variable, x, xInd)
   setIndex $ ind + 1
 
 toNodeList :: Program -> [Node]
@@ -193,17 +218,16 @@ toNodeList (Prog stms)
 
 type Index = Int
 type NodeTag = Int
-type VectorTree = (Vector Index, Vector Depth, Vector NodeTag, Matrix Char, Vector TypeIndex)
+type VectorTree = (Vector Index, Vector Depth, Vector Parent, Vector NodeTag, Matrix Char, Vector TypeIndex)
 
 astToVectorTree :: Program -> VectorTree
-astToVectorTree ast = (indVec, depthVec, nodeTypeVec, valueMatrix, typeIndVec)
+astToVectorTree ast = (indVec, depthVec, parentVec, nodeTypeVec, valueMatrix, typeIndVec)
   where
     nodeList = toNodeList ast
 
-    depths = fmap (\(d, _, _, _) -> d) nodeList
-    nodeTypes  = fmap (fromEnum . (\(_, t, _, _) -> t)) nodeList
-    values = padToEqualLength '\0' $ fmap (\(_, _, v, _) -> v) nodeList
-    typeIndeces = fmap (\(_, _, _, i) -> i) nodeList
+    ( depths, parents, nodeTypes', values', typeIndeces ) = unzip5 nodeList
+    nodeTypes = fmap fromEnum nodeTypes'
+    values = padToEqualLength '\0' values'
 
     maxLength arr = maximum (map length arr)
 
@@ -211,6 +235,7 @@ astToVectorTree ast = (indVec, depthVec, nodeTypeVec, valueMatrix, typeIndVec)
     indVec      = A.fromList (Z :. length values) [0..]
 
     depthVec    = A.fromList (Z :. length depths) depths
+    parentVec   = A.fromList (Z :. length depths) parents
     nodeTypeVec = A.fromList (Z :. length depths) nodeTypes
     valueMatrix = A.fromList (Z :. length values :. maxLength values) (concat values)
     typeIndVec  = A.fromList (Z :. length depths) typeIndeces

@@ -58,7 +58,7 @@ leftifyTypeVariables = map leftify
       (fst vecTy1 == variable_) ? (T2 vecTy1 vecTy0, pair)
 
 -- | Extract constraints of the form `type var=other` and generate a mapping
-generateTypeMap :: Acc ConstraintMatrix -> (Acc (Vector Int), Acc (Vector VectorizedType))
+generateTypeMap :: Acc ConstraintMatrix -> (Acc (Vector Int), Acc (Vector EncodedType))
 generateTypeMap matrix =
   let
     T2 typeMap _ = filter predicate matrix
@@ -70,15 +70,16 @@ generateTypeMap matrix =
     values = map (\(T2 _ val) -> val) typeMap
   in (indices, values)
 
+-- TODO: use values from type matrix which should be more efficient
 -- | Substitute all occurencies of a type variable in Constraint Matrix
 -- with a value from type vector
 --
 -- For each type variable n in the constraint matrix, it is substituted
 -- with the type at index n of the type vector
-substituteTypeVariables :: Acc (Vector VectorizedType) -> Acc ConstraintMatrix -> Acc ConstraintMatrix
+substituteTypeVariables :: Acc (Vector EncodedType) -> Acc ConstraintMatrix -> Acc ConstraintMatrix
 substituteTypeVariables typeVec matrix =
   let
-    lookup :: Exp VectorizedType -> Exp VectorizedType
+    lookup :: Exp EncodedType -> Exp EncodedType
     lookup vecTy@(T2 ty val) =
       (ty == variable_) ? (typeVec !! val, vecTy)
     

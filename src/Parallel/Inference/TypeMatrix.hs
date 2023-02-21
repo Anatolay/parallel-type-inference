@@ -4,6 +4,7 @@ module Parallel.Inference.TypeMatrix where
 import qualified Prelude as P
 import Data.Array.Accelerate as A
 import Parallel.Inference.Types
+import Parallel.Inference.Substitution
 
 initTypeMatrix :: Int -> TypeMatrix
 initTypeMatrix depth = matrix
@@ -14,21 +15,21 @@ initTypeMatrix depth = matrix
     res = args
     matrix = (types, args, res)
 
-updateTypes :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector VectorizedType) -> Acc TypeMatrix
+updateTypes :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector EncodedType) -> Acc TypeMatrix
 updateTypes matrix indices values = updatedMatrix
   where
     T3 types args res = matrix
-    updatedTypes = scatter indices types values
+    updatedTypes = substitute' indices values types
     updatedMatrix = T3 updatedTypes args res
 
 updateArgRes :: Acc TypeMatrix -> Acc TypeMatrix
 updateArgRes (T3 types arg res) = updatedTypeMatrix
   where
-    lookup :: Exp VectorizedType -> Exp VectorizedType
+    lookup :: Exp EncodedType -> Exp EncodedType
     lookup vecTy@(T2 ty val) =
       (ty == variable_) ? (types !! val, vecTy)
     
     updatedTypeMatrix = T3 types (map lookup arg) (map lookup res)
 
-updateTypeMatrix :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector VectorizedType) -> Acc TypeMatrix
+updateTypeMatrix :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector EncodedType) -> Acc TypeMatrix
 updateTypeMatrix matrix indices values = updateArgRes $ updateTypes matrix indices values

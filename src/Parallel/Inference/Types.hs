@@ -32,10 +32,10 @@ data Type
   deriving (Generic, Elt)
 
 type Tag = Int
-type VectorizedType = (Tag, Int)
-type TypePair = (VectorizedType, VectorizedType)
+type EncodedType = (Tag, Int)
+type TypePair = (EncodedType, EncodedType)
 
-type TypeMatrix = (Vector VectorizedType, Vector VectorizedType, Vector VectorizedType)
+type TypeMatrix = (Vector EncodedType, Vector EncodedType, Vector EncodedType)
 type ConstraintMatrix = Vector TypePair
-
+type SubstitutionMatrix = (Vector Int, Vector EncodedType)
 
