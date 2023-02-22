@@ -20,44 +20,46 @@ runPrintSteps vectorTree initialTypes = do
   let (_, initialTypeMatrixAcc) = bindVars vectorTreeAcc initialTypesAcc
   let initialTypeMatrix = run initialTypeMatrixAcc
 
-  P.print "STEP 1: INITIALIZE"
-  P.print $ showVectorTree vectorTree
-  P.print $ showTypeMatrix initialTypeMatrix
+  P.putStrLn "STEP 1: INITIALIZE"
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix initialTypeMatrix
   -- No constraint matrix at this step
 
   let (_, typeMatrixAcc, constraintMatrixAcc) = letBindings vectorTreeAcc (use initialTypeMatrix)
   let typeMatrix = run typeMatrixAcc
   let constraintMatrix = run constraintMatrixAcc
 
-  P.print "STEP 2: LET BINDINGS"
-  P.print $ showVectorTree vectorTree
-  P.print $ showTypeMatrix typeMatrix
-  P.print $ showConstraintMatrix constraintMatrix
+  P.putStrLn "STEP 2: LET BINDINGS"
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix typeMatrix
+  P.putStrLn $ showConstraintMatrix constraintMatrix
 
   let (_, typeMatrixAcc, constraintMatrixAcc) = inferConstants vectorTreeAcc (use typeMatrix) (use constraintMatrix)
   let typeMatrix = run typeMatrixAcc
   let constraintMatrix = run constraintMatrixAcc
 
-  P.print "STEP 3: INFER CONSTANTS"
-  P.print $ showVectorTree vectorTree
-  P.print $ showTypeMatrix typeMatrix
-  P.print $ showConstraintMatrix constraintMatrix
+  P.putStrLn "STEP 3: INFER CONSTANTS"
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix typeMatrix
+  P.putStrLn $ showConstraintMatrix constraintMatrix
 
   P.return ()
 
 
 showTypeMatrix :: TypeMatrix -> P.String
-showTypeMatrix (c0, c1, c2) = P.unlines textual
+showTypeMatrix (c0, c1, c2) = P.unlines (title : textualRows)
   where
     cols = P.fmap toList [c0, c1, c2]
     stringCols = P.fmap (P.fmap showEncodedType) cols
-    textual = ("Types" P.++ '\t' : "Args" P.++ '\t' : "Res") : combineLines stringCols
+    textualRows = ("Types" P.++ '\t' : "Args" P.++ '\t' : "Res") : combineLines stringCols
+    title = "Type Matrix"
 
 showConstraintMatrix :: ConstraintMatrix -> P.String
-showConstraintMatrix cm = P.unlines rows
+showConstraintMatrix cm = P.unlines (title : rows)
   where
     pairs = toList cm
     rows = P.fmap showTypePair pairs
+    title = "Constraint Matrix"
 
 showEncodedType :: EncodedType -> P.String
 showEncodedType (tag, val)

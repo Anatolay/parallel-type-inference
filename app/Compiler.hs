@@ -12,7 +12,10 @@ import Inference.Basic
 import Parallel.Inference.Constraints
 import Parallel.Inference.TypeMatrix
 import Parallel.Inference.Types
+import Parallel.Inference.Print
 import Print ( run, runFile, runVectorTree )
+import Parallel.AST (astToVectorTree)
+
 
 usage :: IO ()
 usage = do
@@ -37,6 +40,13 @@ main = do
       case parse src of
         Left _ -> print "Parse Error"
         Right tree -> print $ typecheckProgram tree
+    ["--verbose"] -> do
+      src <- getContents
+      case parse src of
+        Left _ -> print "Parse Error"
+        Right prog -> do
+          let (vectorTree, initialTypes) = astToVectorTree prog
+          runPrintSteps vectorTree initialTypes
     ["--infer"] -> do
       src <- getContents
       case parse src of

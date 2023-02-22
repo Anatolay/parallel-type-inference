@@ -276,7 +276,7 @@ indicesByNodeType :: NodeType -> Acc VectorTree -> Acc (Vector Int)
 indicesByNodeType nodeType ast = filteredIndices
   where
     tag :: A.Exp NodeTag
-    tag = toEnum $ fromEnum nodeType
+    tag = A.lift $ fromEnum nodeType
 
     hasTag :: A.Exp (Int, NodeTag) -> A.Exp Bool
     hasTag (A.T2 ind tg) = tag A.== tg
@@ -310,7 +310,7 @@ childrenIndicesByParent parentNodeType ast = indices
     A.T5 inds deps pars tags vals = ast
 
     tag :: A.Exp NodeTag
-    tag = toEnum $ fromEnum parentNodeType
+    tag = A.lift $ fromEnum parentNodeType
 
     predicate :: A.Exp (Int, Parent) -> A.Exp Bool
     predicate (A.T2 _ parent) = (tags A.!! parent) A.== tag

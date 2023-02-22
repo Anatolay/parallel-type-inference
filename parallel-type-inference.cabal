@@ -35,6 +35,7 @@ library
       Parallel.AST
       Parallel.Inference.Algo
       Parallel.Inference.Constraints
+      Parallel.Inference.Print
       Parallel.Inference.Substitution
       Parallel.Inference.TypeMatrix
       Parallel.Inference.Types

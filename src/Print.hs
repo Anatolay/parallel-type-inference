@@ -64,7 +64,8 @@ showVectorTree (i, d, p, nt, v) =
     nt' = show <$> toList nt
     v' = charMatrixToLines v
 
-  in unlines . combineLines $ [i', d', p', nt', v']
+    matrixRows = combineLines [i', d', p', nt', v']
+  in unlines ("Vectorized AST:" : matrixRows)
 
 printVectorTree :: VectorTree -> IO ()
 printVectorTree = putStrLn . showVectorTree

@@ -89,7 +89,7 @@ substituteTypeVariables typeVec matrix =
   in map substitute matrix
 
 updateTypeVariables :: Acc ConstraintMatrix -> Acc TypeMatrix -> Acc ConstraintMatrix
-updateTypeVariables constraintMatrix typeMatrix = undefined
+updateTypeVariables constraintMatrix typeMatrix = updatedConstraintMatrix
   where
     (col0, col1) = unzip constraintMatrix
     T3 types _ _ = typeMatrix
