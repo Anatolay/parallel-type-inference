@@ -62,8 +62,32 @@ inferConstants vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatr
     newConstraintMatrix = updateTypeVariables constraintMatrix newTypeMatrix
 
 -- | Infer types of succ and pred expressions
-succTyping :: Acc VectorTree -> Acc VectorTree
-succTyping = undefined
+succTyping :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
+succTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, finalConstraintMatrix)
+  where
+    T3 types _ _ = typeMatrix
+
+    succNodes = indicesByNodeType SuccOperator vectorTree
+    predNodes = indicesByNodeType PredOperator vectorTree
+    nodes = succNodes ++ predNodes
+
+    succChildren = childrenIndicesByParent SuccOperator vectorTree
+    predChildren = childrenIndicesByParent PredOperator vectorTree
+    childNodes = succChildren ++ predChildren
+
+    -- We know that types for all Succ and Pred nodes should not be initialized,
+    -- Therefore we can update them directly.
+    vars = map (types !!) nodes
+    (_, indices) = unzip vars
+    newTypeMatrix = updateTypeMatrix typeMatrix indices $ fill (shape types) (lift (nat_, 0 :: Int))
+    newConstraintMatrix = updateTypeVariables constraintMatrix newTypeMatrix
+
+    -- Since some of the nat values could have been placed already, it is simpler for now
+    -- to generate constraints instead of adding additional checks.
+    childTypes = map (types !!) childNodes
+    newConstraints = map (\ct -> lift (ct, lift (nat_, 0 :: Int) :: Exp EncodedType)) childTypes
+    finalConstraintMatrix = newConstraintMatrix ++ newConstraints
+
 
 lambdaTyping :: Acc VectorTree -> Acc ConstraintMatrix -> (Acc VectorTree, Acc ConstraintMatrix)
 lambdaTyping = undefined

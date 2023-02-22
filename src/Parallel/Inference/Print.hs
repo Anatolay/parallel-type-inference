@@ -43,6 +43,15 @@ runPrintSteps vectorTree initialTypes = do
   P.putStrLn $ showTypeMatrix typeMatrix
   P.putStrLn $ showConstraintMatrix constraintMatrix
 
+  let (_, typeMatrixAcc, constraintMatrixAcc) = succTyping vectorTreeAcc (use typeMatrix) (use constraintMatrix)
+  let typeMatrix = run typeMatrixAcc
+  let constraintMatrix = run constraintMatrixAcc
+
+  P.putStrLn "STEP 4: SUCC AND PRED TYPING"
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix typeMatrix
+  P.putStrLn $ showConstraintMatrix constraintMatrix
+
   P.return ()
 
 
@@ -66,6 +75,7 @@ showEncodedType (tag, val)
   | tag P.== natTag = "Nat"
   | tag P.== functionTag = "Fun " P.++ P.show val
   | tag P.== variableTag = "Var " P.++ P.show val
+  | tag P.== noneTag = "–"
   | otherwise = "Gibberish"
 
 showTypePair :: TypePair -> P.String
