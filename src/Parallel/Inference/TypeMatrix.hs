@@ -5,15 +5,27 @@ import qualified Prelude as P
 import Data.Array.Accelerate as A
 import Parallel.Inference.Types
 import Parallel.Inference.Substitution
+import Parallel.AST (TypeIndex)
 
-initTypeMatrix :: Int -> TypeMatrix
-initTypeMatrix depth = matrix
+initTypeMatrixByDepth :: Int -> TypeMatrix
+initTypeMatrixByDepth depth = matrix
   where
     shape = Z :. depth
     types = A.fromList shape $ P.fmap (variableTag, ) [0..(depth-1)]
     args = A.fromList shape $ P.fmap (noneTag, ) [0..]
     res = args
     matrix = (types, args, res)
+
+initTypeMatrixWith :: Acc (Vector TypeIndex) -> Acc TypeMatrix
+initTypeMatrixWith typeIndices = matrix
+  where
+    shp = shape typeIndices
+
+    types = map (\x -> lift (variable_, x)) typeIndices
+    args = fill shp $ lift (noneTag, 0 :: Int)
+    res = args
+
+    matrix = lift (types, args, res)
 
 updateTypes :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector EncodedType) -> Acc TypeMatrix
 updateTypes matrix indices values = updatedMatrix

@@ -5,7 +5,7 @@ module Print where
 import Data.Array.Accelerate (toList, (:.)((:.)), DIM1, arrayShape)
 import Frontend (getTokens, parseTokens)
 import qualified Lang.Print (Print, printTree)
-import Parallel.AST ( VectorTree, astToVectorTree )
+import Parallel.AST ( VectorTree, astToVectorTree' )
 import System.Exit (exitFailure, exitSuccess)
 
 -- | Same as `run`, but accepts a program's source file path instead of a String
@@ -40,7 +40,7 @@ printTree tree
       putStrLn $ "\n[Linearized tree]\n\n" ++ showTree tree
 
 printVectorTree :: VectorTree -> IO ()
-printVectorTree (i, d, p, nt, v, ti) =
+printVectorTree (i, d, p, nt, v) =
   let
     charMatrixToLines cm = go (toList cm) [] 0
       where
@@ -63,9 +63,8 @@ printVectorTree (i, d, p, nt, v, ti) =
     p' = show <$> toList p
     nt' = show <$> toList nt
     v' = charMatrixToLines v
-    ti' = show <$> toList ti
 
-  in putStrLn . unlines . combineLines $ [i', d', p', nt', v', ti']
+  in putStrLn . unlines . combineLines $ [i', d', p', nt', v']
 
 runVectorTree :: String -> IO ()
 runVectorTree s = case parseTokens tokens of
@@ -79,7 +78,7 @@ runVectorTree s = case parseTokens tokens of
     putStrLn "\nParse Successful!"
     printTree ast
     putStrLn ""
-    printVectorTree $ astToVectorTree ast
+    printVectorTree $ astToVectorTree' ast
     exitSuccess
   where
   tokens = getTokens s

@@ -1,4 +1,17 @@
-module Parallel.AST where
+module Parallel.AST
+  ( Depth
+  , Parent
+  , TypeIndex
+  , Index
+  , NodeTag
+  , Node
+  , NodeType(..)
+  , VectorTree
+  , astToVectorTree
+  , astToVectorTree'
+  , indicesByNodeType
+  , childrenIndicesByParent
+  ) where
 
 import Data.Array.Accelerate
   ( Matrix
@@ -11,7 +24,6 @@ import qualified Data.Array.Accelerate as A
 import Lang.Abs (Exp(..), Ident(Ident), Program(Prog))
 
 import Control.Monad.State
-import Data.List (elemIndex)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Data.List (unzip5)
@@ -218,10 +230,12 @@ toNodeList (Prog stms)
 
 type Index = Int
 type NodeTag = Int
-type VectorTree = (Vector Index, Vector Depth, Vector Parent, Vector NodeTag, Matrix Char, Vector TypeIndex)
+type VectorTree = (Vector Index, Vector Depth, Vector Parent, Vector NodeTag, Matrix Char)
 
-astToVectorTree :: Program -> VectorTree
-astToVectorTree ast = (indVec, depthVec, parentVec, nodeTypeVec, valueMatrix, typeIndVec)
+-- | Given a recursive AST, construct data-parallel AST.
+-- Returns constructed AST and initial type variables.
+astToVectorTree :: Program -> (VectorTree, Vector TypeIndex)
+astToVectorTree ast = ((indVec, depthVec, parentVec, nodeTypeVec, valueMatrix), typeIndVec)
   where
     nodeList = toNodeList ast
 
@@ -240,11 +254,11 @@ astToVectorTree ast = (indVec, depthVec, parentVec, nodeTypeVec, valueMatrix, ty
     valueMatrix = A.fromList (Z :. length values :. maxLength values) (concat values)
     typeIndVec  = A.fromList (Z :. length depths) typeIndeces
 
-type VectorTreeAcc = Acc VectorTree
+-- | Construct data-parallel AST from recursive AST.
+astToVectorTree' :: Program -> VectorTree
+astToVectorTree' p = let (vectorTree, _) = astToVectorTree p in vectorTree
 
-vectorTreeToAcc :: VectorTree -> Acc VectorTree
-vectorTreeToAcc = A.use
-
+-- UTILS --
 padRight :: Int -> a -> [a] -> [a]
 padRight n e arr
   | length arr == n = arr
@@ -254,3 +268,53 @@ padToEqualLength :: a -> [[a]] -> [[a]]
 padToEqualLength e arr = map (padRight maxLength e) arr
   where
     maxLength = maximum $ map length arr
+-- --
+
+-- | Given a Node Type and tabular AST, get indeces of rows of this type
+-- e.g. select all Succ nodes
+indicesByNodeType :: NodeType -> Acc VectorTree -> Acc (Vector Int)
+indicesByNodeType nodeType ast = filteredIndices
+  where
+    tag :: A.Exp NodeTag
+    tag = toEnum $ fromEnum nodeType
+
+    hasTag :: A.Exp (Int, NodeTag) -> A.Exp Bool
+    hasTag (A.T2 ind tg) = tag A.== tg
+
+    A.T5 indices _ _ tags _ = ast
+    A.T2 filtered _ = A.filter hasTag $ A.zip indices tags
+
+    (filteredIndices, _) = A.unzip filtered
+
+-- | For each parent index in the input vector, provide indices of all child rows
+-- childrenIndicesByParent :: Acc (Vector Int) -> Acc VectorTree -> Acc (Vector (Vector Int))
+-- childrenIndicesByParent parents ast = undefined
+--   where
+--     A.T5 inds deps pars tags vals = ast
+
+--     getChildren :: A.Exp Int -> A.Exp (Vector Int)
+--     getChildren ind = fst . A.unzip . A.afst $ A.filter isChild $ A.zip inds pars
+--       where
+--         isChild :: A.Exp (Int, Parent) -> A.Exp Bool
+--         isChild (A.T2 _ p) = p A.== ind
+
+--     a = A.map getChildren parents
+
+-- | Given parent node type, provide indices of all child rows
+--
+-- Note that we will use the fact that the number of children is always constant
+-- for a given parent node, e.g. 3 children for Let node.
+childrenIndicesByParent :: NodeType -> Acc VectorTree -> Acc (Vector Int)
+childrenIndicesByParent parentNodeType ast = indices
+  where
+    A.T5 inds deps pars tags vals = ast
+
+    tag :: A.Exp NodeTag
+    tag = toEnum $ fromEnum parentNodeType
+
+    predicate :: A.Exp (Int, Parent) -> A.Exp Bool
+    predicate (A.T2 _ parent) = (tags A.!! parent) A.== tag
+
+    A.T2 rows _ = A.filter predicate $ A.zip inds pars
+    (indices, _) = A.unzip rows
+
