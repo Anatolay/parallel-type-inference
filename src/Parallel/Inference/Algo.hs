@@ -9,14 +9,16 @@ import Parallel.AST
 
 import qualified Prelude as P
 
-run :: VectorTree -> Vector TypeIndex -> VectorTree
-run = undefined
+runInference :: VectorTree -> Vector TypeIndex -> VectorTree
+runInference = undefined
 
+-- | Initialize type matrix for given tabular AST
 bindVars :: Acc VectorTree -> Acc (Vector TypeIndex) -> (Acc VectorTree, Acc TypeMatrix)
 bindVars vectorTree typeIndices = (vectorTree, typeMatrix)
   where
     typeMatrix = initTypeMatrixWith typeIndices
 
+-- | Infer types of let bindings, collect constraints
 letBindings :: Acc VectorTree -> Acc TypeMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
 letBindings vectorTree typeMatrix = (vectorTree, typeMatrix, constraints)
   where
@@ -43,9 +45,23 @@ letBindings vectorTree typeMatrix = (vectorTree, typeMatrix, constraints)
     constraints :: Acc ConstraintMatrix
     constraints = zip letNodeTypes bodyTypes ++ zip varTypes boundTypes
 
-inferConstants :: Acc VectorTree -> Acc VectorTree
-inferConstants = undefined
+-- | Infer types of known constants
+inferConstants :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
+inferConstants vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, newConstraintMatrix)
+  where
+    natNodes = indicesByNodeType Constant vectorTree
+    T3 types _ _ = typeMatrix
 
+    -- Here we use the fact that at this step in the algorithm,
+    -- type matrix only contains type variables, which allows us
+    -- to update all of them directly. In a more general case,
+    -- this step should only generate more constraints
+    vars = map (types !!) natNodes
+    (_, indices) = unzip vars
+    newTypeMatrix = updateTypeMatrix typeMatrix indices $ fill (shape types) (lift (nat_, 0 :: Int))
+    newConstraintMatrix = updateTypeVariables constraintMatrix newTypeMatrix
+
+-- | Infer types of succ and pred expressions
 succTyping :: Acc VectorTree -> Acc VectorTree
 succTyping = undefined
 
@@ -55,6 +71,7 @@ lambdaTyping = undefined
 applicationTyping :: Acc VectorTree -> Acc ConstraintMatrix -> (Acc VectorTree, Acc ConstraintMatrix)
 applicationTyping = undefined
 
+-- | When all constraints are collected, resolve them
 resolveConstraints :: Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc TypeMatrix, Acc ConstraintMatrix)
 resolveConstraints typeMatrix constraintMatrix =
   let

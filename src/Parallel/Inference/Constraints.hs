@@ -88,6 +88,17 @@ substituteTypeVariables typeVec matrix =
 
   in map substitute matrix
 
+updateTypeVariables :: Acc ConstraintMatrix -> Acc TypeMatrix -> Acc ConstraintMatrix
+updateTypeVariables constraintMatrix typeMatrix = undefined
+  where
+    (col0, col1) = unzip constraintMatrix
+    T3 types _ _ = typeMatrix
+    lookup :: Exp EncodedType -> Exp EncodedType
+    lookup encTy@(T2 tag ind) =
+      (tag == variable_) ? (types !! ind, encTy)
+    updatedConstraintMatrix = zip (map lookup col0) (map lookup col1)
+
+
 -- | Return True if there is an error
 -- e.g. equality of a function type and a base type
 checkErrors :: Acc ConstraintMatrix -> Acc (Scalar Bool)
