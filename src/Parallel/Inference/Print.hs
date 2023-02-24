@@ -62,6 +62,15 @@ runPrintSteps vectorTree initialTypes = do
   P.putStrLn $ showTypeMatrix typeMatrix
   P.putStrLn $ showConstraintMatrix constraintMatrix
 
+  let (_, typeMatrixAcc, constraintMatrixAcc) = applicationTyping vectorTreeAcc (use typeMatrix) (use constraintMatrix)
+  let typeMatrix = run typeMatrixAcc
+  let constraintMatrix = run constraintMatrixAcc
+
+  P.putStrLn "STEP 6: APPLICATION TYPING"
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix typeMatrix
+  P.putStrLn $ showConstraintMatrix constraintMatrix
+
   P.return ()
 
 

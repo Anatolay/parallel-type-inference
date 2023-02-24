@@ -27,7 +27,6 @@ letBindings vectorTree typeMatrix = (vectorTree, typeMatrix, constraints)
     childIndices = childrenIndicesByParent LetExpr vectorTree
 
     -- For each Let node, there are 3 child nodes
-    -- childShape = shape childIndices
     childGroups :: Acc (Matrix Int)
     childGroups = reshape (lift $ Z :. length letNodeIndices :. (3 :: Int)) childIndices
 
@@ -96,8 +95,7 @@ lambdaTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix
     lambdaNodeIndices = indicesByNodeType LambdaAbstraction vectorTree
     childIndices = childrenIndicesByParent LambdaAbstraction vectorTree
 
-    -- For each Let node, there are 3 child nodes
-    -- childShape = shape childIndices
+    -- For each lambda abstraction node, there are 2 child nodes
     childGroups :: Acc (Matrix Int)
     childGroups = reshape (lift $ Z :. length lambdaNodeIndices :. (2 :: Int)) childIndices
 
@@ -119,8 +117,37 @@ lambdaTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix
     newConstraintMatrix = constraintMatrix ++ constraints
 
 
-applicationTyping :: Acc VectorTree -> Acc ConstraintMatrix -> (Acc VectorTree, Acc ConstraintMatrix)
-applicationTyping = undefined
+applicationTyping :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
+applicationTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, newConstraintMatrix)
+  where
+    T3 types args res = typeMatrix
+    applicationNodeIndices = indicesByNodeType Application vectorTree
+    childIndices = childrenIndicesByParent Application vectorTree
+
+    -- For each function application node, there are 2 child nodes
+    childGroups :: Acc (Matrix Int)
+    childGroups = reshape (lift $ Z :. length applicationNodeIndices :. (2 :: Int)) childIndices
+
+    funs = slice childGroups (constant (Z :. All :. (0 :: Int)))
+    funArgs = slice childGroups (constant (Z :. All :. (1 :: Int)))
+
+    funNodeTypes = map (types !!) funs
+    funArgNodeTypes = map (types !!) funArgs
+    applicationNodeTypes = map (types !!) applicationNodeIndices
+
+    -- Number of function types currently stored
+    len = length args
+
+    -- "@ f x" means that all f's should be functions from x's into @'s
+    moreArgs = funArgNodeTypes
+    moreRes = applicationNodeTypes
+
+    newArgs = args ++ moreArgs
+    newRes = res ++ moreRes
+    newTypeMatrix = T3 types newArgs newRes
+
+    constraints = imap (\(I1 i) v -> lift (v, (functionTag, len + i))) funNodeTypes
+    newConstraintMatrix = constraintMatrix ++ constraints
 
 -- | When all constraints are collected, resolve them
 resolveConstraints :: Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc TypeMatrix, Acc ConstraintMatrix)
