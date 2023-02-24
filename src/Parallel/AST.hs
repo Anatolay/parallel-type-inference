@@ -10,7 +10,7 @@ module Parallel.AST
   , astToVectorTree
   , astToVectorTree'
   , indicesByNodeType
-  , childrenIndicesByParent
+  , nthChildIndices
   ) where
 
 import Data.Array.Accelerate
@@ -27,7 +27,7 @@ import Parallel.Utils ( padToEqualLength )
 import Control.Monad.State
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
-import Data.List (unzip5)
+import Data.List (unzip6)
 
 data NodeType
   = Variable
@@ -42,8 +42,9 @@ data NodeType
 
 type Depth = Int
 type Parent = Int
+type ChildIndex = Int
 type TypeIndex = Int
-type Node = (Depth, Parent, NodeType, String, TypeIndex)
+type Node = (Depth, Parent, ChildIndex, NodeType, String, TypeIndex)
 
 type VarMap = Map.Map String Int
 
@@ -52,7 +53,8 @@ data ConverterState = ConverterState
   , csNodeList :: [Node]
   , csDepth :: Depth
   , csIndex :: Int
-  , csParent :: Int
+  , csParent :: Parent
+  , csChildIndex :: ChildIndex
   }
 type Converter a = State ConverterState a
 
@@ -98,6 +100,19 @@ setParent par = do
   state <- get
   put state { csParent = par }
 
+getChildIndex :: Converter ChildIndex
+getChildIndex = gets csChildIndex
+
+setChildIndex :: ChildIndex -> Converter ()
+setChildIndex ci = do
+  state <- get
+  put state { csChildIndex = ci }
+
+noChild = -1
+firstChild = 0
+secondChild = 1
+thirdChild = 2
+
 expToNodeList :: Exp -> [Node]
 expToNodeList exp = nodeList
   where
@@ -109,120 +124,139 @@ expToNodeList exp = nodeList
       , csDepth = 0
       , csIndex = 0
       , csParent = -1
+      , csChildIndex = -1
       }
 
 convert :: Exp -> Converter ()
 convert (Lambda (Ident x) exp) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
   -- variable x is newly introduced, add to the map
   setTypeInd x (ind + 1)
 
-  appendNode (depth, parent, LambdaAbstraction, "lam", ind)
-  appendNode (depth + 1, ind, Variable, x, ind + 1)
+  appendNode (depth, parent, childIndex, LambdaAbstraction, "lam", ind)
+  appendNode (depth + 1, ind, firstChild, Variable, x, ind + 1)
 
   setIndex $ ind + 2
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex secondChild
   convert exp
 
 convert (Succ exp) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
-  appendNode (depth, parent, SuccOperator, "succ", ind)
+  appendNode (depth, parent, childIndex, SuccOperator, "succ", ind)
 
   setIndex $ ind + 1
   
   setDepth $ depth + 1
   setParent ind
+  setChildIndex firstChild
   convert exp
 
 convert (Pred exp) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
-  appendNode (depth, parent, PredOperator, "pred", ind)
+  appendNode (depth, parent, childIndex, PredOperator, "pred", ind)
   
   setIndex $ ind + 1
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex firstChild
   convert exp
 
 convert (Cond cond trueExp falseExp) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
-  appendNode (depth, parent, Conditional, "if", ind)
+  appendNode (depth, parent, childIndex, Conditional, "if", ind)
   
   setIndex $ ind + 1
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex firstChild
   convert cond
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex secondChild
   convert trueExp
   
   setDepth $ depth + 1
   setParent ind
+  setChildIndex thirdChild
   convert falseExp
 
 convert (Let (Ident x) val body) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
   -- variable x is newly introduced, add to the map
   setTypeInd x (ind + 1)
-  appendNode (depth, parent, LetExpr, "let", ind)
-  appendNode (depth + 1, ind, Variable, x, ind+1)
+  appendNode (depth, parent, childIndex, LetExpr, "let", ind)
+  appendNode (depth + 1, ind, firstChild, Variable, x, ind+1)
 
   setIndex $ ind + 2
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex secondChild
   convert val
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex thirdChild
   convert body
 
 convert (Appl fun exp) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
-  appendNode (depth, parent, Application, "@", ind)
+  appendNode (depth, parent, childIndex, Application, "@", ind)
 
   setIndex $ ind + 1
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex firstChild
   convert fun
 
   setDepth $ depth + 1
   setParent ind
+  setChildIndex secondChild
   convert exp
 
 convert Zero = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
-  appendNode (depth, parent, Constant, "0", ind)
+  appendNode (depth, parent, childIndex, Constant, "0", ind)
   setIndex $ ind + 1
 
 convert (Var (Ident x)) = do
   depth <- getDepth
   parent <- getParent
+  childIndex <- getChildIndex
   ind <- getIndex
   -- variable x is either free or already introduced
   -- If free, getTypeInd return Nothing and we keep ind
   -- Else we use value returned by getTypeInd
   xInd <- fmap (fromMaybe ind) (getTypeInd x)
-  appendNode (depth, parent, Variable, x, xInd)
+  appendNode (depth, parent, childIndex, Variable, x, xInd)
   setIndex $ ind + 1
 
 toNodeList :: Program -> [Node]
@@ -231,16 +265,16 @@ toNodeList (Prog stms)
 
 type Index = Int
 type NodeTag = Int
-type VectorTree = (Vector Index, Vector Depth, Vector Parent, Vector NodeTag, Matrix Char)
+type VectorTree = (Vector Index, Vector Depth, Vector Parent, Vector ChildIndex, Vector NodeTag, Matrix Char)
 
 -- | Given a recursive AST, construct data-parallel AST.
 -- Returns constructed AST and initial type variables.
 astToVectorTree :: Program -> (VectorTree, Vector TypeIndex)
-astToVectorTree ast = ((indVec, depthVec, parentVec, nodeTypeVec, valueMatrix), typeIndVec)
+astToVectorTree ast = ((indVec, depthVec, parentVec, childIndVec, nodeTypeVec, valueMatrix), typeIndVec)
   where
     nodeList = toNodeList ast
 
-    ( depths, parents, nodeTypes', values', typeIndeces ) = unzip5 nodeList
+    ( depths, parents, childIndices, nodeTypes', values', typeIndeces ) = unzip6 nodeList
     nodeTypes = fmap fromEnum nodeTypes'
     values = padToEqualLength '\0' values'
 
@@ -251,6 +285,7 @@ astToVectorTree ast = ((indVec, depthVec, parentVec, nodeTypeVec, valueMatrix), 
 
     depthVec    = A.fromList (Z :. length depths) depths
     parentVec   = A.fromList (Z :. length depths) parents
+    childIndVec = A.fromList (Z :. length depths) childIndices
     nodeTypeVec = A.fromList (Z :. length depths) nodeTypes
     valueMatrix = A.fromList (Z :. length values :. maxLength values) (concat values)
     typeIndVec  = A.fromList (Z :. length depths) typeIndeces
@@ -270,40 +305,36 @@ indicesByNodeType nodeType ast = filteredIndices
     hasTag :: A.Exp (Int, NodeTag) -> A.Exp Bool
     hasTag (A.T2 ind tg) = tag A.== tg
 
-    A.T5 indices _ _ tags _ = ast
+    A.T6 indices _ _ _ tags _ = ast
     A.T2 filtered _ = A.filter hasTag $ A.zip indices tags
 
     (filteredIndices, _) = A.unzip filtered
 
--- | For each parent index in the input vector, provide indices of all child rows
--- childrenIndicesByParent :: Acc (Vector Int) -> Acc VectorTree -> Acc (Vector (Vector Int))
--- childrenIndicesByParent parents ast = undefined
---   where
---     A.T5 inds deps pars tags vals = ast
-
---     getChildren :: A.Exp Int -> A.Exp (Vector Int)
---     getChildren ind = fst . A.unzip . A.afst $ A.filter isChild $ A.zip inds pars
---       where
---         isChild :: A.Exp (Int, Parent) -> A.Exp Bool
---         isChild (A.T2 _ p) = p A.== ind
-
---     a = A.map getChildren parents
-
--- | Given parent node type, provide indices of all child rows
+-- | Given a parent node type and child index, provide indices of all child rows
 --
--- Note that we will use the fact that the number of children is always constant
--- for a given parent node, e.g. 3 children for Let node.
-childrenIndicesByParent :: NodeType -> Acc VectorTree -> Acc (Vector Int)
-childrenIndicesByParent parentNodeType ast = indices
+-- e.g. for Cond nodes: condition, true and false branches are the first, second and third children
+nthChildIndices :: NodeType -> Int -> Acc VectorTree -> Acc (Vector Int)
+nthChildIndices parentNodeType n ast = indices
   where
-    A.T5 inds deps pars tags vals = ast
+    A.T6 inds deps pars chInds tags vals = ast
 
     tag :: A.Exp NodeTag
     tag = A.lift $ fromEnum parentNodeType
 
-    predicate :: A.Exp (Int, Parent) -> A.Exp Bool
-    predicate (A.T2 _ parent) = (tags A.!! parent) A.== tag
+    predicate :: A.Exp (Int, Parent, ChildIndex) -> A.Exp Bool
+    predicate (A.T3 _ parent childInd) =
+      (tags A.!! parent) A.== tag
+      A.&& (childInd A.== A.lift n)
 
-    A.T2 rows _ = A.filter predicate $ A.zip inds pars
-    (indices, _) = A.unzip rows
+    A.T2 childRows _ = A.filter predicate $ A.zip3 inds pars chInds
+    (childIndices, parentIndices, _) = A.unzip3 childRows
 
+    -- We have received child indices in the order they appear in the ast.
+    -- However, it is required to have them in the order their parents appear.
+    -- Scattering these values allows to get them in the correct order.
+    scaterred = A.scatter parentIndices (A.fill (A.lift $ Z :. A.length pars) (-1 :: A.Exp Int)) childIndices
+    A.T2 indices _ = A.filter (A./= -1) scaterred
+
+    -- TODO: there could be a more efficient approach (probably, needs checking)
+    -- If this function accepted a vector of parent indices `parentIndicesVec`:
+    -- indices = A.map (scaterred !!) parentIndicesVec

@@ -24,16 +24,20 @@ letBindings vectorTree typeMatrix = (vectorTree, typeMatrix, constraints)
   where
     T3 types _ _ = typeMatrix
     letNodeIndices = indicesByNodeType LetExpr vectorTree
-    childIndices = childrenIndicesByParent LetExpr vectorTree
+    -- childIndices = childrenIndicesByParent LetExpr vectorTree
 
-    -- For each Let node, there are 3 child nodes
-    childGroups :: Acc (Matrix Int)
-    childGroups = reshape (lift $ Z :. length letNodeIndices :. (3 :: Int)) childIndices
+    -- -- For each Let node, there are 3 child nodes
+    -- childGroups :: Acc (Matrix Int)
+    -- childGroups = reshape (lift $ Z :. length letNodeIndices :. (3 :: Int)) childIndices
 
-    vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
-    bound = slice childGroups (constant (Z :. All :. (1 :: Int)))
-    body = slice childGroups (constant (Z :. All :. (2 :: Int)))
+    -- vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
+    -- bound = slice childGroups (constant (Z :. All :. (1 :: Int)))
+    -- body = slice childGroups (constant (Z :. All :. (2 :: Int)))
 
+    vars = nthChildIndices LetExpr 0 vectorTree
+    bound = nthChildIndices LetExpr 1 vectorTree
+    body = nthChildIndices LetExpr 2 vectorTree
+    
     letNodeTypes = map (types !!) letNodeIndices
     varTypes = map (types !!) vars
     boundTypes = map (types !!) bound
@@ -70,8 +74,10 @@ succTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, 
     predNodes = indicesByNodeType PredOperator vectorTree
     nodes = succNodes ++ predNodes
 
-    succChildren = childrenIndicesByParent SuccOperator vectorTree
-    predChildren = childrenIndicesByParent PredOperator vectorTree
+    -- succChildren = childrenIndicesByParent SuccOperator vectorTree
+    -- predChildren = childrenIndicesByParent PredOperator vectorTree
+    succChildren = nthChildIndices SuccOperator 0 vectorTree
+    predChildren = nthChildIndices PredOperator 0 vectorTree
     childNodes = succChildren ++ predChildren
 
     -- We know that types for all Succ and Pred nodes should not be initialized,
@@ -93,14 +99,16 @@ lambdaTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix
   where
     T3 types args res = typeMatrix
     lambdaNodeIndices = indicesByNodeType LambdaAbstraction vectorTree
-    childIndices = childrenIndicesByParent LambdaAbstraction vectorTree
+    -- childIndices = childrenIndicesByParent LambdaAbstraction vectorTree
 
-    -- For each lambda abstraction node, there are 2 child nodes
-    childGroups :: Acc (Matrix Int)
-    childGroups = reshape (lift $ Z :. length lambdaNodeIndices :. (2 :: Int)) childIndices
+    -- -- For each lambda abstraction node, there are 2 child nodes
+    -- childGroups :: Acc (Matrix Int)
+    -- childGroups = reshape (lift $ Z :. length lambdaNodeIndices :. (2 :: Int)) childIndices
 
-    vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
-    body = slice childGroups (constant (Z :. All :. (1 :: Int)))
+    -- vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
+    -- body = slice childGroups (constant (Z :. All :. (1 :: Int)))
+    vars = nthChildIndices LambdaAbstraction 0 vectorTree
+    body = nthChildIndices LambdaAbstraction 1 vectorTree
 
     lambdaNodeTypes = map (types !!) lambdaNodeIndices
     varTypes = map (types !!) vars
@@ -122,14 +130,16 @@ applicationTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeM
   where
     T3 types args res = typeMatrix
     applicationNodeIndices = indicesByNodeType Application vectorTree
-    childIndices = childrenIndicesByParent Application vectorTree
+    -- childIndices = childrenIndicesByParent Application vectorTree
 
-    -- For each function application node, there are 2 child nodes
-    childGroups :: Acc (Matrix Int)
-    childGroups = reshape (lift $ Z :. length applicationNodeIndices :. (2 :: Int)) childIndices
+    -- -- For each function application node, there are 2 child nodes
+    -- childGroups :: Acc (Matrix Int)
+    -- childGroups = reshape (lift $ Z :. length applicationNodeIndices :. (2 :: Int)) childIndices
 
-    funs = slice childGroups (constant (Z :. All :. (0 :: Int)))
-    funArgs = slice childGroups (constant (Z :. All :. (1 :: Int)))
+    -- funs = slice childGroups (constant (Z :. All :. (0 :: Int)))
+    -- funArgs = slice childGroups (constant (Z :. All :. (1 :: Int)))
+    funs = nthChildIndices Application 0 vectorTree
+    funArgs = nthChildIndices Application 1 vectorTree
 
     funNodeTypes = map (types !!) funs
     funArgNodeTypes = map (types !!) funArgs
