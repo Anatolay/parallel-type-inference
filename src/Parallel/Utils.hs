@@ -1,7 +1,11 @@
 module Parallel.Utils where
 
-import Data.Array.Accelerate
-import qualified Prelude as P
+padRight :: Int -> a -> [a] -> [a]
+padRight n e arr
+  | length arr == n = arr
+  | otherwise       = arr ++ replicate (n - length arr) e
 
-combine :: (Elt a, Elt b) => Acc (Vector a) -> Acc (Vector b) -> Acc (Vector (a, b))
-combine = zip
+padToEqualLength :: a -> [[a]] -> [[a]]
+padToEqualLength e arr = map (padRight maxLength e) arr
+  where
+    maxLength = maximum $ map length arr

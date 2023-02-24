@@ -12,7 +12,8 @@ initTypeMatrixByDepth depth = matrix
   where
     shape = Z :. depth
     types = A.fromList shape $ P.fmap (variableTag, ) [0..(depth-1)]
-    args = A.fromList shape $ P.fmap (noneTag, ) [0..]
+    -- args = A.fromList shape $ P.fmap (noneTag, ) [0..]
+    args = A.fromList (Z :. (0 :: Int)) []
     res = args
     matrix = (types, args, res)
 
@@ -22,7 +23,8 @@ initTypeMatrixWith typeIndices = matrix
     shp = shape typeIndices
 
     types = map (\x -> lift (variable_, x)) typeIndices
-    args = fill shp $ lift (noneTag, 0 :: Int)
+    -- args = fill shp $ lift (noneTag, 0 :: Int)
+    args = A.fromList (Z :. (0 :: Int)) []
     res = args
 
     matrix = lift (types, args, res)
@@ -38,9 +40,9 @@ updateArgRes :: Acc TypeMatrix -> Acc TypeMatrix
 updateArgRes (T3 types arg res) = updatedTypeMatrix
   where
     lookup :: Exp EncodedType -> Exp EncodedType
-    lookup vecTy@(T2 ty val) =
-      (ty == variable_) ? (types !! val, vecTy)
-    
+    lookup encTy@(T2 ty val) =
+      (ty == variable_) ? (types !! val, encTy)
+
     updatedTypeMatrix = T3 types (map lookup arg) (map lookup res)
 
 updateTypeMatrix :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector EncodedType) -> Acc TypeMatrix

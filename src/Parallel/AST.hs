@@ -22,6 +22,7 @@ import Data.Array.Accelerate
   )
 import qualified Data.Array.Accelerate as A
 import Lang.Abs (Exp(..), Ident(Ident), Program(Prog))
+import Parallel.Utils ( padToEqualLength )
 
 import Control.Monad.State
 import qualified Data.Map as Map
@@ -257,18 +258,6 @@ astToVectorTree ast = ((indVec, depthVec, parentVec, nodeTypeVec, valueMatrix), 
 -- | Construct data-parallel AST from recursive AST.
 astToVectorTree' :: Program -> VectorTree
 astToVectorTree' p = let (vectorTree, _) = astToVectorTree p in vectorTree
-
--- UTILS --
-padRight :: Int -> a -> [a] -> [a]
-padRight n e arr
-  | length arr == n = arr
-  | otherwise       = arr ++ replicate (n - length arr) e
-
-padToEqualLength :: a -> [[a]] -> [[a]]
-padToEqualLength e arr = map (padRight maxLength e) arr
-  where
-    maxLength = maximum $ map length arr
--- --
 
 -- | Given a Node Type and tabular AST, get indeces of rows of this type
 -- e.g. select all Succ nodes

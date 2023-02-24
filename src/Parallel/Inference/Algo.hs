@@ -88,9 +88,36 @@ succTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, 
     newConstraints = map (\ct -> lift (ct, lift (nat_, 0 :: Int) :: Exp EncodedType)) childTypes
     finalConstraintMatrix = newConstraintMatrix ++ newConstraints
 
+-- | Generate constraints for lambda abstractions. Initialize function type matrix.
+lambdaTyping :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
+lambdaTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, newConstraintMatrix)
+  where
+    T3 types args res = typeMatrix
+    lambdaNodeIndices = indicesByNodeType LambdaAbstraction vectorTree
+    childIndices = childrenIndicesByParent LambdaAbstraction vectorTree
 
-lambdaTyping :: Acc VectorTree -> Acc ConstraintMatrix -> (Acc VectorTree, Acc ConstraintMatrix)
-lambdaTyping = undefined
+    -- For each Let node, there are 3 child nodes
+    -- childShape = shape childIndices
+    childGroups :: Acc (Matrix Int)
+    childGroups = reshape (lift $ Z :. length lambdaNodeIndices :. (2 :: Int)) childIndices
+
+    vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
+    body = slice childGroups (constant (Z :. All :. (1 :: Int)))
+
+    lambdaNodeTypes = map (types !!) lambdaNodeIndices
+    varTypes = map (types !!) vars
+    bodyTypes = map (types !!) body
+
+    -- Number of function types currently stored
+    len = length args
+
+    newArgs = args ++ varTypes
+    newRes = res ++ bodyTypes
+
+    newTypeMatrix = T3 types newArgs newRes
+    constraints = imap (\(I1 i) v -> lift (v, (functionTag, len + i))) lambdaNodeTypes
+    newConstraintMatrix = constraintMatrix ++ constraints
+
 
 applicationTyping :: Acc VectorTree -> Acc ConstraintMatrix -> (Acc VectorTree, Acc ConstraintMatrix)
 applicationTyping = undefined

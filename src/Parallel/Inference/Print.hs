@@ -7,6 +7,7 @@ import qualified Prelude as P
 import Parallel.AST
 import Parallel.Inference.Algo
 import Parallel.Inference.Types
+import Parallel.Utils ( padToEqualLength )
 import Print (showVectorTree)
 
 -- | Given a tabular AST, perform type inference.
@@ -52,6 +53,15 @@ runPrintSteps vectorTree initialTypes = do
   P.putStrLn $ showTypeMatrix typeMatrix
   P.putStrLn $ showConstraintMatrix constraintMatrix
 
+  let (_, typeMatrixAcc, constraintMatrixAcc) = lambdaTyping vectorTreeAcc (use typeMatrix) (use constraintMatrix)
+  let typeMatrix = run typeMatrixAcc
+  let constraintMatrix = run constraintMatrixAcc
+
+  P.putStrLn "STEP 5: LAMBDA TYPING"
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix typeMatrix
+  P.putStrLn $ showConstraintMatrix constraintMatrix
+
   P.return ()
 
 
@@ -60,7 +70,8 @@ showTypeMatrix (c0, c1, c2) = P.unlines (title : textualRows)
   where
     cols = P.fmap toList [c0, c1, c2]
     stringCols = P.fmap (P.fmap showEncodedType) cols
-    textualRows = ("Types" P.++ '\t' : "Args" P.++ '\t' : "Res") : combineLines stringCols
+    paddedCols = padToEqualLength "" stringCols
+    textualRows = ("Types" P.++ '\t' : "Args" P.++ '\t' : "Res") : combineLines paddedCols
     title = "Type Matrix"
 
 showConstraintMatrix :: ConstraintMatrix -> P.String
