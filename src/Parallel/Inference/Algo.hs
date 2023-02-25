@@ -24,15 +24,6 @@ letBindings vectorTree typeMatrix = (vectorTree, typeMatrix, constraints)
   where
     T3 types _ _ = typeMatrix
     letNodeIndices = indicesByNodeType LetExpr vectorTree
-    -- childIndices = childrenIndicesByParent LetExpr vectorTree
-
-    -- -- For each Let node, there are 3 child nodes
-    -- childGroups :: Acc (Matrix Int)
-    -- childGroups = reshape (lift $ Z :. length letNodeIndices :. (3 :: Int)) childIndices
-
-    -- vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
-    -- bound = slice childGroups (constant (Z :. All :. (1 :: Int)))
-    -- body = slice childGroups (constant (Z :. All :. (2 :: Int)))
 
     vars = nthChildIndices LetExpr 0 vectorTree
     bound = nthChildIndices LetExpr 1 vectorTree
@@ -50,23 +41,19 @@ letBindings vectorTree typeMatrix = (vectorTree, typeMatrix, constraints)
 
 -- | Infer types of known constants
 inferConstants :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
-inferConstants vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, newConstraintMatrix)
+inferConstants vectorTree typeMatrix constraintMatrix = (vectorTree, typeMatrix, newConstraintMatrix)
   where
     natNodes = indicesByNodeType Constant vectorTree
     T3 types _ _ = typeMatrix
 
-    -- Here we use the fact that at this step in the algorithm,
-    -- type matrix only contains type variables, which allows us
-    -- to update all of them directly. In a more general case,
-    -- this step should only generate more constraints
     vars = map (types !!) natNodes
-    (_, indices) = unzip vars
-    newTypeMatrix = updateTypeMatrix typeMatrix indices $ fill (shape types) (lift (nat_, 0 :: Int))
-    newConstraintMatrix = updateTypeVariables constraintMatrix newTypeMatrix
+    constraints = zip vars $ fill (shape vars) (lift (nat_, 0 :: Int))
+    newConstraintMatrix = constraintMatrix ++ constraints
+
 
 -- | Infer types of succ and pred expressions
 succTyping :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
-succTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, finalConstraintMatrix)
+succTyping vectorTree typeMatrix constraintMatrix = (vectorTree, typeMatrix, newConstraintMatrix)
   where
     T3 types _ _ = typeMatrix
 
@@ -74,24 +61,16 @@ succTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix, 
     predNodes = indicesByNodeType PredOperator vectorTree
     nodes = succNodes ++ predNodes
 
-    -- succChildren = childrenIndicesByParent SuccOperator vectorTree
-    -- predChildren = childrenIndicesByParent PredOperator vectorTree
     succChildren = nthChildIndices SuccOperator 0 vectorTree
     predChildren = nthChildIndices PredOperator 0 vectorTree
     childNodes = succChildren ++ predChildren
 
-    -- We know that types for all Succ and Pred nodes should not be initialized,
-    -- Therefore we can update them directly.
-    vars = map (types !!) nodes
-    (_, indices) = unzip vars
-    newTypeMatrix = updateTypeMatrix typeMatrix indices $ fill (shape types) (lift (nat_, 0 :: Int))
-    newConstraintMatrix = updateTypeVariables constraintMatrix newTypeMatrix
-
-    -- Since some of the nat values could have been placed already, it is simpler for now
-    -- to generate constraints instead of adding additional checks.
+    nodeTypes = map (types !!) nodes
     childTypes = map (types !!) childNodes
-    newConstraints = map (\ct -> lift (ct, lift (nat_, 0 :: Int) :: Exp EncodedType)) childTypes
-    finalConstraintMatrix = newConstraintMatrix ++ newConstraints
+    allTypes = nodeTypes ++ childTypes
+
+    constraints = zip allTypes $ fill (shape allTypes) (lift (nat_, 0 :: Int))
+    newConstraintMatrix = constraintMatrix ++ constraints
 
 -- | Generate constraints for lambda abstractions. Initialize function type matrix.
 lambdaTyping :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
@@ -99,14 +78,7 @@ lambdaTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeMatrix
   where
     T3 types args res = typeMatrix
     lambdaNodeIndices = indicesByNodeType LambdaAbstraction vectorTree
-    -- childIndices = childrenIndicesByParent LambdaAbstraction vectorTree
 
-    -- -- For each lambda abstraction node, there are 2 child nodes
-    -- childGroups :: Acc (Matrix Int)
-    -- childGroups = reshape (lift $ Z :. length lambdaNodeIndices :. (2 :: Int)) childIndices
-
-    -- vars = slice childGroups (constant (Z :. All :. (0 :: Int)))
-    -- body = slice childGroups (constant (Z :. All :. (1 :: Int)))
     vars = nthChildIndices LambdaAbstraction 0 vectorTree
     body = nthChildIndices LambdaAbstraction 1 vectorTree
 
@@ -130,14 +102,7 @@ applicationTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeM
   where
     T3 types args res = typeMatrix
     applicationNodeIndices = indicesByNodeType Application vectorTree
-    -- childIndices = childrenIndicesByParent Application vectorTree
 
-    -- -- For each function application node, there are 2 child nodes
-    -- childGroups :: Acc (Matrix Int)
-    -- childGroups = reshape (lift $ Z :. length applicationNodeIndices :. (2 :: Int)) childIndices
-
-    -- funs = slice childGroups (constant (Z :. All :. (0 :: Int)))
-    -- funArgs = slice childGroups (constant (Z :. All :. (1 :: Int)))
     funs = nthChildIndices Application 0 vectorTree
     funArgs = nthChildIndices Application 1 vectorTree
 
