@@ -89,11 +89,11 @@ runPrintSteps vectorTree initialTypes = do
   let hasErrors = P.head . toList $ run hasErrorsAcc
   
   P.putStrLn "STEP 8: RESOLVE CONSTRAINTS"
-  P.putStrLn $ "Has Errors: " P.++ P.show hasErrors
+  P.putStrLn $ if hasErrors then "Has Errors!" else "No errors!"
   P.putStrLn $ showVectorTree vectorTree
   P.putStrLn $ showTypeMatrix typeMatrix
   P.putStrLn $ showConstraintMatrix constraintMatrix
-  
+
   P.return ()
 
 

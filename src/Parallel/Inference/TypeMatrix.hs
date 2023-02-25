@@ -29,6 +29,8 @@ initTypeMatrixWith typeIndices = matrix
 
     matrix = lift (types, args, res)
 
+-- | Given a vector of indices and vector of values, put these values
+-- into provided indices of type matrix
 updateTypes :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector EncodedType) -> Acc TypeMatrix
 updateTypes matrix indices values = updatedMatrix
   where
@@ -46,4 +48,14 @@ updateArgRes (T3 types arg res) = updatedTypeMatrix
     updatedTypeMatrix = T3 types (map lookup arg) (map lookup res)
 
 updateTypeMatrix :: Acc TypeMatrix -> Acc (Vector Int) -> Acc (Vector EncodedType) -> Acc TypeMatrix
-updateTypeMatrix matrix indices values = updateArgRes $ updateTypes matrix indices values
+updateTypeMatrix matrix indices values = selfUpdate $ updateTypes matrix indices values
+
+selfUpdate :: Acc TypeMatrix -> Acc TypeMatrix
+selfUpdate (T3 types args res) = T3 newTypes newArgs newRes
+  where
+    update :: Exp EncodedType -> Exp EncodedType
+    update encTy@(T2 tag ind) = tag == variable_ ? (types !! ind, encTy)
+
+    newTypes = map update types
+    newArgs = map update args
+    newRes = map update res
