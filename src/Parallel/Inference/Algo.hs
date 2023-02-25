@@ -124,6 +124,25 @@ applicationTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeM
     constraints = imap (\(I1 i) v -> lift (v, (functionTag, len + i))) funNodeTypes
     newConstraintMatrix = constraintMatrix ++ constraints
 
+conditionals :: Acc VectorTree -> Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc VectorTree, Acc TypeMatrix, Acc ConstraintMatrix)
+conditionals vectorTree typeMatrix constraintMatrix = (vectorTree, typeMatrix, newConstraintMatrix)
+  where
+    T3 types _ _ = typeMatrix
+    conditionalNodeIndices = indicesByNodeType Conditional vectorTree
+
+    conds = nthChildIndices Conditional 0 vectorTree
+    trues = nthChildIndices Conditional 1 vectorTree
+    falses = nthChildIndices Conditional 2 vectorTree
+    
+    condTypes = map (types !!) conds
+    trueTypes = map (types !!) trues
+    falseTypes = map (types !!) falses
+
+    -- Types of true and false branches must be equal.
+    -- Type of condition must be Nat.
+    constraints = zip trueTypes falseTypes ++ zip condTypes (fill (shape condTypes) (lift (nat_, 0 :: Int)))
+    newConstraintMatrix = constraintMatrix ++ constraints
+
 -- | When all constraints are collected, resolve them.
 -- Returns updated AST and Constraint Matrix, along with a Boolean indicating presence of erros.
 resolveConstraints :: Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc TypeMatrix, Acc ConstraintMatrix, Acc (Scalar Bool))
