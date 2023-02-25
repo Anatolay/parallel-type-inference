@@ -71,6 +71,18 @@ runPrintSteps vectorTree initialTypes = do
   P.putStrLn $ showTypeMatrix typeMatrix
   P.putStrLn $ showConstraintMatrix constraintMatrix
 
+  let (typeMatrixAcc, constraintMatrixAcc, hasErrorsAcc) = resolveConstraints (use typeMatrix) (use constraintMatrix)
+  let typeMatrix = run typeMatrixAcc
+  let constraintMatrix = run constraintMatrixAcc
+  -- Scalar hasexactly one element, head is safe
+  let hasErrors = P.head . toList $ run hasErrorsAcc
+  
+  P.putStrLn "STEP 8: RESOLVE CONSTRAINTS"
+  P.putStrLn $ "Has Errors: " P.++ P.show hasErrors
+  P.putStrLn $ showVectorTree vectorTree
+  P.putStrLn $ showTypeMatrix typeMatrix
+  P.putStrLn $ showConstraintMatrix constraintMatrix
+  
   P.return ()
 
 

@@ -159,22 +159,33 @@ applicationTyping vectorTree typeMatrix constraintMatrix = (vectorTree, newTypeM
     constraints = imap (\(I1 i) v -> lift (v, (functionTag, len + i))) funNodeTypes
     newConstraintMatrix = constraintMatrix ++ constraints
 
--- | When all constraints are collected, resolve them
-resolveConstraints :: Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc TypeMatrix, Acc ConstraintMatrix)
-resolveConstraints typeMatrix constraintMatrix =
-  let
-    T3 types args res = typeMatrix
+-- | When all constraints are collected, resolve them.
+-- Returns updated AST and Constraint Matrix, along with a Boolean indicating presence of erros.
+resolveConstraints :: Acc TypeMatrix -> Acc ConstraintMatrix -> (Acc TypeMatrix, Acc ConstraintMatrix, Acc (Scalar Bool))
+resolveConstraints typeMatrix constraintMatrix = (newTypeMatrix, newConstraintMatrix, hasErrors)
+  where
+    iterate :: Acc (TypeMatrix, ConstraintMatrix) -> Acc (TypeMatrix, ConstraintMatrix)
+    iterate accPair = lift (newTypeMatrix, newConstraintMatrix)
+      where
+        T2 tm cm = accPair
+        T3 types args res = tm
 
-    noRepeats = removeRepeats constraintMatrix
-    expanded = expandFunctionEquality noRepeats (zip args res)
-    leftified = leftifyTypeVariables expanded
-    (indicies, values) = generateTypeMap leftified
+        noRepeats = removeRepeats cm
+        expanded = expandFunctionEquality noRepeats (zip args res)
+        leftified = leftifyTypeVariables expanded
+        (indicies, values) = generateTypeMap leftified
 
-    updatedTypeMatrix = updateTypeMatrix typeMatrix indicies values
-    T3 newTypes _ _ = updatedTypeMatrix
+        newTypeMatrix = updateTypeMatrix tm indicies values
+        T3 newTypes _ _ = newTypeMatrix
 
-    substituted = substituteTypeVariables newTypes leftified
+        newConstraintMatrix = substituteTypeVariables newTypes leftified
 
-    -- TODO: check errors and iterate
-  in (updatedTypeMatrix, substituted)
+    predicate :: Acc (TypeMatrix, ConstraintMatrix) -> Acc (Scalar Bool)
+    predicate (T2 _ cm) = zipWith (&&) shouldContinue hasNoErrors
+      where
+        shouldContinue = hasNonTypeVars cm
+        hasNoErrors = checkNoErrors cm
 
+    resolved = awhile predicate iterate $ lift (typeMatrix, constraintMatrix)
+    T2 newTypeMatrix newConstraintMatrix = resolved
+    hasErrors = checkErrors newConstraintMatrix

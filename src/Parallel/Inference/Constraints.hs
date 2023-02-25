@@ -6,6 +6,15 @@ import qualified Prelude as P
 import Data.Array.Accelerate as A
 import Parallel.Inference.Types
 
+-- | Returns False if all values in the constraint matrix are type variables.
+-- In this case, constraints can no longer be resolved.
+hasNonTypeVars :: Acc ConstraintMatrix -> Acc (Scalar Bool)
+hasNonTypeVars = any isNonVar
+  where
+    -- check if any in the pair is nonVar
+    isNonVar :: Exp TypePair -> Exp Bool
+    isNonVar (T2 (T2 tag0 _) (T2 tag1 _)) = tag0 /= variable_ || tag1 /= variable_
+
 -- | Remove all rows where two types are equal.
 --
 --  ___________
@@ -29,12 +38,17 @@ removeRepeats matrix = elems
 expandFunctionEquality :: Acc ConstraintMatrix -> Acc (Vector TypePair) -> Acc ConstraintMatrix
 expandFunctionEquality matrix funReference =
   let
+    -- If function equality, allocate two rows for new equalities,
+    -- else leave single row as is
     expandCount :: Exp TypePair -> Exp Int
     expandCount (T2 (T2 ty0 _) (T2 ty1 _))
       =  ty0 == function_
       && ty1 == function_
       ?  (2, 1)
 
+    -- If function equality, one row is for argument type equality (i is 0),
+    -- the other is for result type equality (i is 1).
+    -- Else keep row as is
     expandTarget :: Exp TypePair -> Exp Int -> Exp TypePair
     expandTarget pair i =
       let
@@ -108,3 +122,6 @@ checkErrors = any isError
       =  ty0 == nat_ && ty1 == function_
       || ty0 == function_ && ty1 == nat_
 
+-- Returns True is there is no error
+checkNoErrors :: Acc ConstraintMatrix -> Acc (Scalar Bool)
+checkNoErrors cm = map not (checkErrors cm)
