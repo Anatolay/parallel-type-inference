@@ -134,13 +134,15 @@ conditionals vectorTree typeMatrix constraintMatrix = (vectorTree, typeMatrix, n
     trues = nthChildIndices Conditional 1 vectorTree
     falses = nthChildIndices Conditional 2 vectorTree
     
+    nodeTypes = map (types !!) conditionalNodeIndices
     condTypes = map (types !!) conds
     trueTypes = map (types !!) trues
     falseTypes = map (types !!) falses
 
     -- Types of true and false branches must be equal.
     -- Type of condition must be Nat.
-    constraints = zip trueTypes falseTypes ++ zip condTypes (fill (shape condTypes) (lift (nat_, 0 :: Int)))
+    -- Type of the whole if node is the same a one of its branches.
+    constraints = zip trueTypes falseTypes ++ zip condTypes (fill (shape condTypes) (lift (nat_, 0 :: Int))) ++ zip trueTypes nodeTypes
     newConstraintMatrix = constraintMatrix ++ constraints
 
 -- | When all constraints are collected, resolve them.

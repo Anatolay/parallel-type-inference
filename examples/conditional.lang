@@ -1,0 +1,1 @@
+λx. if x then 0 else succ 0 ;
