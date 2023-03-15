@@ -76,6 +76,15 @@ setTypeInd var ind = do
   let varMap = csVarMap state
   put state { csVarMap = Map.insert var ind varMap }
 
+getVarMap :: Converter VarMap
+getVarMap = do
+  gets csVarMap
+
+putVarMap :: VarMap -> Converter ()
+putVarMap varMap = do
+  state <- get
+  put state { csVarMap = varMap }
+
 getIndex :: Converter Int
 getIndex = gets csIndex
 
@@ -133,8 +142,11 @@ convert (Lambda (Ident x) exp) = do
   parent <- getParent
   childIndex <- getChildIndex
   ind <- getIndex
-  -- variable x is newly introduced, add to the map
-  setTypeInd x (ind + 1)
+  -- lambda expresision introduces a new scope.
+  -- It is possible that `x` existed in  the previous scope, therefore
+  -- we keep the scope and introduce a new one.
+  varMap <- getVarMap -- contains old scope
+  setTypeInd x (ind + 1) -- updates/creates variable `x`
 
   appendNode (depth, parent, childIndex, LambdaAbstraction, "lam", ind)
   appendNode (depth + 1, ind, firstChild, Variable, x, ind + 1)
@@ -146,6 +158,9 @@ convert (Lambda (Ident x) exp) = do
   setChildIndex secondChild
   convert exp
 
+  -- now is the time to restore the old scope.
+  putVarMap varMap
+
 convert (Succ exp) = do
   depth <- getDepth
   parent <- getParent
@@ -154,7 +169,7 @@ convert (Succ exp) = do
   appendNode (depth, parent, childIndex, SuccOperator, "succ", ind)
 
   setIndex $ ind + 1
-  
+
   setDepth $ depth + 1
   setParent ind
   setChildIndex firstChild
@@ -166,7 +181,7 @@ convert (Pred exp) = do
   childIndex <- getChildIndex
   ind <- getIndex
   appendNode (depth, parent, childIndex, PredOperator, "pred", ind)
-  
+
   setIndex $ ind + 1
 
   setDepth $ depth + 1
@@ -180,7 +195,7 @@ convert (Cond cond trueExp falseExp) = do
   childIndex <- getChildIndex
   ind <- getIndex
   appendNode (depth, parent, childIndex, Conditional, "if", ind)
-  
+
   setIndex $ ind + 1
 
   setDepth $ depth + 1
@@ -192,7 +207,7 @@ convert (Cond cond trueExp falseExp) = do
   setParent ind
   setChildIndex secondChild
   convert trueExp
-  
+
   setDepth $ depth + 1
   setParent ind
   setChildIndex thirdChild
@@ -203,8 +218,7 @@ convert (Let (Ident x) val body) = do
   parent <- getParent
   childIndex <- getChildIndex
   ind <- getIndex
-  -- variable x is newly introduced, add to the map
-  setTypeInd x (ind + 1)
+
   appendNode (depth, parent, childIndex, LetExpr, "let", ind)
   appendNode (depth + 1, ind, firstChild, Variable, x, ind+1)
 
@@ -215,10 +229,21 @@ convert (Let (Ident x) val body) = do
   setChildIndex secondChild
   convert val
 
+  -- let binding introduces a new scope.
+  -- It is possible that `x` existed in  the previous scope, therefore
+  -- we keep the scope and introduce a new one.
+  --
+  -- It is done after converting the value as value can contain references to old `x`
+  varMap <- getVarMap -- contains old scope
+  setTypeInd x (ind + 1) -- updates/inserts value of `x`
+
   setDepth $ depth + 1
   setParent ind
   setChildIndex thirdChild
   convert body
+
+  -- now is the time to restore the old scope.
+  putVarMap varMap
 
 convert (Appl fun exp) = do
   depth <- getDepth

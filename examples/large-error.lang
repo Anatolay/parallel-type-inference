@@ -1,0 +1,12 @@
+λa.λf.
+  if pred a
+  then
+    if f (succ a)
+    then λb. let apply = λfun.λarg.fun arg in apply (λz. succ z) b
+    else λc.a
+  else
+    let id = λd.d in
+      if f a
+      then id
+      else (λe.f) id id
+;
