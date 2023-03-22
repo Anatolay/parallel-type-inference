@@ -9,8 +9,26 @@ import Parallel.AST
 
 import qualified Prelude as P
 
-runInference :: VectorTree -> Vector TypeIndex -> VectorTree
-runInference = undefined
+(.>) :: (a -> b) -> (b -> c) -> a -> c
+(.>) = P.flip (.)
+
+uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
+uncurry3 f (a, b, c) = f a b c
+
+performInference :: VectorTree -> Vector TypeIndex -> (Acc TypeMatrix, Acc ConstraintMatrix, Acc (Scalar Bool))
+performInference tree indices = res
+  where
+    gatherConstraints = P.uncurry bindVars
+      .> P.uncurry letBindings
+      .> uncurry3 inferConstants
+      .> uncurry3 succTyping
+      .> uncurry3 lambdaTyping
+      .> uncurry3 applicationTyping
+      .> uncurry3 conditionals
+
+    (_, typeMatrix, constraintMatrix) = gatherConstraints (use tree, use indices)
+
+    res = resolveConstraints typeMatrix constraintMatrix
 
 -- | Initialize type matrix for given tabular AST
 bindVars :: Acc VectorTree -> Acc (Vector TypeIndex) -> (Acc VectorTree, Acc TypeMatrix)
