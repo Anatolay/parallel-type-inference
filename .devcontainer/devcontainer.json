@@ -1,13 +1,18 @@
 {
   "name": "Dev Container",
-  "image": "nihon/compiler-dev",
-  "settings": {
-    "haskell.manageHLS": "PATH",
-    "haskell.ghcupExecutablePath": "/home/vscode/.ghcup/bin/ghcup",
-    "haskell.serverExecutablePath": "haskell-language-server-8.10.7"
+  "image": "nihon/compiler-dev-env:cuda1104",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "haskell.haskell"
+      ],
+      "settings": {
+        "haskell.manageHLS": "PATH",
+        "haskell.ghcupExecutablePath": "/home/vscode/.ghcup/bin/ghcup",
+        "haskell.serverExecutablePath": "haskell-language-server-8.10.7"
+      }
+    }
   },
-  "extensions": [
-    "haskell.haskell"
-  ],
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+  "runArgs": [ "--runtime=nvidia", "--gpus=all" ]
 }
