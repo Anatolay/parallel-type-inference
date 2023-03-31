@@ -17,6 +17,9 @@ dependencies:
 - accelerate
 - accelerate-llvm
 - accelerate-llvm-native
+- accelerate-llvm-ptx
+- cuda
+- nvvm
 
 
 library:

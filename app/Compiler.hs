@@ -6,6 +6,7 @@ import Lang.Abs ( Program(Prog) )
 
 import Data.Array.Accelerate as A
 import qualified Data.Array.Accelerate.LLVM.Native as Native
+import qualified Data.Array.Accelerate.LLVM.PTX as GPU
 
 import Frontend (parse)
 
