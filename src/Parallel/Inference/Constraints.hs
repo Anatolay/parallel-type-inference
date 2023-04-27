@@ -5,6 +5,7 @@ module Parallel.Inference.Constraints where
 import qualified Prelude as P
 import Data.Array.Accelerate as A
 import Parallel.Inference.Types
+import Parallel.Inference.Substitution
 
 -- | Returns False if all values in the constraint matrix are type variables.
 -- In this case, constraints can no longer be resolved.
@@ -96,7 +97,7 @@ substituteTypeVariables typeVec matrix =
     lookup :: Exp EncodedType -> Exp EncodedType
     lookup vecTy@(T2 ty val) =
       (ty == variable_) ? (typeVec !! val, vecTy)
-    
+
     substitute :: Exp TypePair -> Exp TypePair
     substitute (T2 vecTy0 vecTy1) = T2 (lookup vecTy0) (lookup vecTy1)
 

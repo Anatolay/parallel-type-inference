@@ -38,7 +38,7 @@ main = do
   print ""
   print . A.toList . run $ removeRepeats constraintMatrix
   print ""
-  let (updTypeMatrix, updConstraintMatrix) = resolveConstraints typeMatrix constraintMatrix
+  let (updTypeMatrix, updConstraintMatrix, isError) = resolveConstraints typeMatrix constraintMatrix
   -- execute updTypeMatrix
   -- print ""
   execute updConstraintMatrix
