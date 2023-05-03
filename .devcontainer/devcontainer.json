@@ -1,6 +1,6 @@
 {
   "name": "Dev Container",
-  "image": "nihon/compiler-dev-env:cuda1104",
+  "image": "nihon/compiler-dev-env:nsight",
   "customizations": {
     "vscode": {
       "extensions": [

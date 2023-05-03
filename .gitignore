@@ -1,1 +1,4 @@
 .stack-work
+
+# nsys output files
+*.qdrep
