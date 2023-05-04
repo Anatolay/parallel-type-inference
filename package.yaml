@@ -18,7 +18,9 @@ dependencies:
 - accelerate-llvm
 - accelerate-llvm-native
 - accelerate-llvm-ptx
+- criterion
 - cuda
+- deepseq
 - nvvm
 
 

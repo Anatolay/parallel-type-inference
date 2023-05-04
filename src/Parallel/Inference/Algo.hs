@@ -6,6 +6,7 @@ import Parallel.Inference.Constraints
 import Parallel.Inference.TypeMatrix
 import Parallel.Inference.Types
 import Parallel.AST
+import Lang.Abs (Program)
 
 import qualified Prelude as P
 
@@ -14,6 +15,9 @@ import qualified Prelude as P
 
 uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
 uncurry3 f (a, b, c) = f a b c
+
+infer :: Program -> (Acc TypeMatrix, Acc ConstraintMatrix, Acc (Scalar Bool))
+infer = P.uncurry performInference . astToVectorTree
 
 performInference :: VectorTree -> Vector TypeIndex -> (Acc TypeMatrix, Acc ConstraintMatrix, Acc (Scalar Bool))
 performInference tree indices = res

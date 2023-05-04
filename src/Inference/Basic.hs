@@ -1,5 +1,9 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Inference.Basic where
 
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
 import Control.Monad.Trans.State ( get, put, StateT(runStateT) )
 import Control.Monad.Trans (lift)
 import qualified Data.Set as Set
@@ -10,7 +14,9 @@ data Type
   = Variable String
   | Function Type Type
   | Nat
-  deriving Eq
+  deriving (Eq, Generic)
+
+instance NFData Type
 
 instance Show Type where
   show Nat = "Nat"

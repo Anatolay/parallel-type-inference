@@ -19,6 +19,7 @@ import Parallel.Inference.Print
 import Parallel.Inference.Algo
 import Print ( run, runFile, runVectorTree )
 import Parallel.AST (astToVectorTree)
+import Benchmarks (runBenchmarks)
 
 
 usage :: IO ()
@@ -65,7 +66,7 @@ main = do
       --   Right (Prog lst) -> case lst of
       --     [] -> print "Empty"
       --     exp : _ -> print $ runStateT (infer exp) initContext
-    fs -> mapM_ runFile fs
+    _ -> runBenchmarks 2
 
 type Verbosity = Bool
 data Runtime

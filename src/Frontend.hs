@@ -1,6 +1,6 @@
-module Frontend (getTokens, parse, parseTokens) where
+module Frontend (getTokens, parse, parseTokens, parseOrEmpty) where
 
-import Lang.Abs ( Program )
+import Lang.Abs ( Program (Prog) )
 import Lang.Lex   ( Token )
 import Lang.Par   ( pProgram, myLexer )
 
@@ -13,3 +13,8 @@ parseTokens = pProgram
 
 parse :: String -> Either String Program
 parse = pProgram . myLexer
+
+parseOrEmpty :: String -> Program
+parseOrEmpty src = case parse src of
+  Left _ -> Prog []
+  Right prog -> prog

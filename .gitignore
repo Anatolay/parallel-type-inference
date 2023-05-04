@@ -2,3 +2,6 @@
 
 # nsys output files
 *.qdrep
+
+compiler
+res.html
