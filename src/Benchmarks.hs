@@ -31,6 +31,6 @@ testFunctionApplication :: Benchmark
 testFunctionApplication = testProg "Function application" "(λx.x) 0 ;"
 
 testLargeSucc :: Benchmark
-testLargeSucc = testProg "Function application" $
+testLargeSucc = testProg "Large nested sequence of succ" $
   concat (replicate 1000000 "succ ") ++ "0 ;"
 
