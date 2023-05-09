@@ -15,7 +15,7 @@ benchmarkConfig = defaultConfig { timeLimit = 30.0 }
 runBenchmarks :: Int -> IO ()
 runBenchmarks num = defaultMainWith (benchmarkConfig { resamples = num }) testSuite
   where
-    testSuite = [testFunctionApplication, testLargeSucc, testLambdaNested]
+    testSuite = [testFunctionApplication, testLargeSucc, testLambdaNested, testLambdaFlat]
 
 testProg :: String -> String -> Benchmark
 testProg name src = bgroup name
@@ -40,11 +40,24 @@ testLambdaNested = testProg "Lots of lambdas and nested applications" src
     src = abstractions ++ applications ++ "0 ;"
     count = 9000
 
-    abstractions = concat $ replicateN count $ \n -> concat ["let a", show n, " = λx", show n, ".x", show n, " in "]
-    applications = concat $ replicateN count $ \n -> "a" ++ show n ++ " "
+    abstractions = concat $ replicateN count $ \n -> concat ["let f", show n, " = λx", show n, ".x", show n, " in "]
+    applications = concat $ replicateN count $ \n -> "f" ++ show n ++ " "
 
     replicateN :: Int -> (Int -> a) -> [a]
     replicateN n f
       | n > 0 = f n : replicateN (n-1) f
       | otherwise = []
 
+testLambdaFlat :: Benchmark
+testLambdaFlat = testProg "Lots of lambdas and sequential applications" src
+  where
+    src = abstractions ++ applications ++ "0 ;"
+    count = 9000
+
+    abstractions = concat $ replicateN count $ \n -> concat ["let f", show n, " = λx", show n, ".x", show n, " in "]
+    applications = concat $ replicateN count $ \n -> concat ["let a", show n, " = f", show n, " 0 in "]
+
+    replicateN :: Int -> (Int -> a) -> [a]
+    replicateN n f
+      | n > 0 = f n : replicateN (n-1) f
+      | otherwise = []
