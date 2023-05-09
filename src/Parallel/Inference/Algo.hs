@@ -155,7 +155,7 @@ conditionals vectorTree typeMatrix constraintMatrix = (vectorTree, typeMatrix, n
     conds = nthChildIndices Conditional 0 vectorTree
     trues = nthChildIndices Conditional 1 vectorTree
     falses = nthChildIndices Conditional 2 vectorTree
-    
+
     nodeTypes = map (types !!) conditionalNodeIndices
     condTypes = map (types !!) conds
     trueTypes = map (types !!) trues
