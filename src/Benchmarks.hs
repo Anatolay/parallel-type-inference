@@ -15,7 +15,7 @@ benchmarkConfig = defaultConfig { timeLimit = 30.0 }
 runBenchmarks :: Int -> IO ()
 runBenchmarks num = defaultMainWith (benchmarkConfig { resamples = num }) testSuite
   where
-    testSuite = [testFunctionApplication, testLargeSucc, testLambdaNested, testLambdaFlat]
+    testSuite = [testFunctionApplication, testLargeSucc, testApplicationNested, testApplicationFlat, testLambdaNested]
 
 testProg :: String -> String -> Benchmark
 testProg name src = bgroup name
@@ -34,8 +34,8 @@ testLargeSucc :: Benchmark
 testLargeSucc = testProg "Large nested sequence of succ" $
   concat (replicate 1000000 "succ ") ++ "0 ;"
 
-testLambdaNested :: Benchmark
-testLambdaNested = testProg "Lots of lambdas and nested applications" src
+testApplicationNested :: Benchmark
+testApplicationNested = testProg "Lots of lambdas and nested applications" src
   where
     src = abstractions ++ applications ++ "0 ;"
     count = 9000
@@ -43,13 +43,8 @@ testLambdaNested = testProg "Lots of lambdas and nested applications" src
     abstractions = concat $ replicateN count $ \n -> concat ["let f", show n, " = λx", show n, ".x", show n, " in "]
     applications = concat $ replicateN count $ \n -> "f" ++ show n ++ " "
 
-    replicateN :: Int -> (Int -> a) -> [a]
-    replicateN n f
-      | n > 0 = f n : replicateN (n-1) f
-      | otherwise = []
-
-testLambdaFlat :: Benchmark
-testLambdaFlat = testProg "Lots of lambdas and sequential applications" src
+testApplicationFlat :: Benchmark
+testApplicationFlat = testProg "Lots of lambdas and sequential applications" src
   where
     src = abstractions ++ applications ++ "0 ;"
     count = 9000
@@ -57,7 +52,21 @@ testLambdaFlat = testProg "Lots of lambdas and sequential applications" src
     abstractions = concat $ replicateN count $ \n -> concat ["let f", show n, " = λx", show n, ".x", show n, " in "]
     applications = concat $ replicateN count $ \n -> concat ["let a", show n, " = f", show n, " 0 in "]
 
-    replicateN :: Int -> (Int -> a) -> [a]
-    replicateN n f
-      | n > 0 = f n : replicateN (n-1) f
-      | otherwise = []
+testLambdaNested :: Benchmark
+testLambdaNested = testProg "Nested lambda abstractions" src
+  where
+    src = concat ["(", function, ") ", zeros, ";"]
+    count = 9000
+
+    lambdas = concat $ replicateN count $ \n -> concat ["λx", show n, "."]
+    function = lambdas ++ "x" ++ show count
+    zeros = concat $ replicate count "0 "
+
+
+
+-- UTILS --
+
+replicateN :: Int -> (Int -> a) -> [a]
+replicateN n f
+  | n > 0 = f n : replicateN (n-1) f
+  | otherwise = []
